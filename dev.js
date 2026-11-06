@@ -45,9 +45,9 @@ window.addEventListener('load', () => {
   addButton('◀ 이전', () => go(window.GlobalState.part1.stepIndex - 1));
   addButton('다음 ▶', () => go(window.GlobalState.part1.stepIndex + 1));
   addButton('안내 건너뛰기', () => { hushVoice(); unlockInput(0); });
-  addButton('⑧ F/B/H', () => {
+  addButton('⑦ L/R', () => {
     const psy = window.GlobalState.psychoProfile;
-    psy.pitchMode = { F: 'B', B: 'H' }[psy.pitchMode] || 'F';
+    psy.dominantEar = psy.dominantEar === 'LEFT' ? 'RIGHT' : 'LEFT';
   });
   // 버튼을 누른 터치가 p5로 넘어가 검사 입력이 되지 않게
   ['touchstart', 'touchend', 'mousedown', 'mouseup'].forEach((type) => box.addEventListener(type, (e) => e.stopPropagation()));

@@ -7,11 +7,11 @@
  * ③ 고음 맞추기  : 하이햇·쉐이커가 큰 비트로 high shelf 맞추기       → highShelf (머리)
  * ④ 음역 고르기  : 같은 멜로디 저/중/고 중 하나 고르기 (듣는 순서 B-A-C 고정) → registerPeak (껍질 자리)
  * → Part 2 검사 네 단계 (part2_audio.js: 고역 예민도 · 중앙 · 우세 귀 · 바탕음/배음)
- * 결과          : 개인 EQ를 입힌 북서울 주변 녹음을 장소마다 차례로 (tour.js) ↔ 원래 소리 비교
+ * 결과          : 개인 EQ를 입힌 북서울 주변 녹음을 15초씩 돌아가며, 버튼으로 고르면 그 곡에 고정 (tour.js) ↔ 원래 소리 비교
  *
  * - 한 단계에 한 파트, 한 축(위아래 쓸기)만 조절. 시작값은 매번 무작위.
- * - 충분히 움직인 뒤 달팽이 꾹으로 확정.
- * - 음성 안내(voice.js)는 지시문 순서대로. ①②③④는 관람객이 먼저 조작하면 남은 안내를 끊음 (사용자 선택 11/05)
+ * - 충분히 움직인 뒤 덩어리 꾹으로 확정.
+ * - 음성 안내(voice.js)는 지시문 순서대로. 할 일을 알려 주는 동안은 터치를 받지 않음 (안내 잠금, 차민휘 전달사항 11/06)
  * - EQ를 바꿔도 체감 음량이 같도록 자동 음량 보정 (큰 소리를 고르는 편향 방지).
  *
  * 신호 흐름:
@@ -22,11 +22,11 @@
 
 // 전체 진행 순서. Part 2 단계는 part2_audio.js가 맡음
 const FLOW_STAGES = [
-  'PART1_VOLUME', 'PART1_LOW', 'PART1_HIGH', 'PART1_REGISTER', // 둥근 반죽 → 꼬리 → 머리 → 껍질 얹기
+  'PART1_VOLUME', 'PART1_LOW', 'PART1_HIGH', 'PART1_REGISTER', // 둥근 덩어리 → 왼쪽 → 오른쪽 → 튀어나올 자리
   'PART2_SENSITIVITY', 'PART2_CENTER', 'PART2_EAR', 'PART2_PITCH',
   'RESULT'
 ];
-const EAR_RESULT_KEY = 'svart.earProfile'; // 청감 클라우드 연결용으로 결과를 남겨 두는 자리
+const EAR_RESULT_KEY = 'svart.earProfile'; // 결과를 기기에 남겨 두는 자리
 
 // ①②③ 검사 소리: 직접 만든 비트의 묶음 크기 (beat.js의 BEAT_MIXES).
 // spectrum은 음량 보정 계산에 쓰는 대략적인 스펙트럼 기울기 ('white' | 'pink' | 'brown'). 잰 스펙트럼이 있으면 그걸 씀(loudness.js)
@@ -40,6 +40,7 @@ const PART1_SOURCES = {
 // 녹음마다 크기가 달라 ①에서 맞춘 볼륨이 다음 단계에서 어긋나지 않도록 크기를 맞춤 (비트와 같은 K-가중 기준, LOUD_TARGET).
 // 원본이 -53 ~ -37 dBFS로 작아 크게 키우는데, 발소리처럼 피크가 큰 녹음은 피크가 상한을 넘지 않는 데까지만 키움
 const SAMPLE_PEAK_CEILING = 0.7;  // p5.sound 최종 리미터(-3 dBFS) 바로 아래
+const SAMPLE_RETRY_MS = 5000;     // 녹음을 못 받았을 때 다시 받기까지
 
 // 단계별 음성 안내 번호 (voice.js, 문구는 copy.js). 앞 단계의 확정 안내(1-6 등)가 다음 단계 맨 앞에 옴
 // intro: 들어갈 때, confirm: 확정할 수 있게 됐을 때
@@ -49,6 +50,7 @@ const ADJUST_VOICE = {
   PART1_HIGH: { intro: ['2-5', '3-1', '3-2', '3-3'], confirm: '3-4' }
 };
 const REGISTER_INTRO_VOICE = ['3-5', '4-1', '4-2', '4-3'];
+const VOICE_DOWN_RATIO = 0.03;    // ① 화면 높이의 이만큼 아래로 쓸어야 1-4. 손을 뗄 때의 떨림과 구분 (Claude가 정함)
 const CONFIRM_VOICE_QUIET_MS = 1500; // 손을 멈춘 뒤 소리를 듣는 시간. 쓰는 중이나 멈추자마자 말해서 비트가 줄어들지 않게 (Claude가 정한 임시값)
 const VOICE_DUCK = { gain: 0.25, down: 0.15, up: 0.5 }; // 말하는 동안 비트·녹음을 -12 dB로. Claude가 정한 임시값
 
@@ -112,12 +114,29 @@ let registerPlayToken = 0;
 let currentVoice = null;
 
 /**
- * 0. 녹음 파일 미리 불러오기 (main.js의 preload()에서 호출)
+ * 0. 녹음 파일 불러오기 (main.js의 setup()에서 호출). preload()에 넣으면 하나만 실패해도 앱이 영영 시작되지 않음.
+ * 못 받은 녹음은 다시 시도하고, 받기 전까지 그 곡은 영상만 나옴. 받으면 watchActiveSource가 재생을 이어 줌
  */
-function preloadPart1() {
-  TOUR_PLACES.forEach(({ key, audio }) => {
-    sampleSources[key] = loadSound(audio);
-  });
+function loadSamples() {
+  TOUR_PLACES.forEach(({ key, audio }) => loadSample(key, audio));
+}
+
+function loadSample(key, audio) {
+  loadSound(audio, (s) => {
+    sampleSources[key] = s;
+    if (window.GlobalState.isAudioInitialized) connectSample(key);
+  }, () => setTimeout(() => loadSample(key, audio), SAMPLE_RETRY_MS));
+}
+
+// 녹음을 EQ 체인에 잇고 크기·스펙트럼을 잼
+function connectSample(key) {
+  const s = sampleSources[key];
+  s.disconnect();
+  s.connect(lowShelfFilter);
+  const ch = bufferChannels(s.buffer);
+  const { kRms, peak } = measureLoudness(ch, s.buffer.sampleRate);
+  sampleLevels[key] = Math.min(LOUD_TARGET / kRms, SAMPLE_PEAK_CEILING / peak);
+  sampleSpectra[key] = measureSpectrum(ch, s.buffer.sampleRate);
 }
 
 /**
@@ -197,14 +216,7 @@ function setupAudioPipeline() {
   duckGain.connect();
 
   setupBeat(lowShelfFilter.input);
-  Object.entries(sampleSources).forEach(([key, s]) => {
-    s.disconnect();
-    s.connect(lowShelfFilter);
-    const ch = bufferChannels(s.buffer);
-    const { kRms, peak } = measureLoudness(ch, s.buffer.sampleRate);
-    sampleLevels[key] = Math.min(LOUD_TARGET / kRms, SAMPLE_PEAK_CEILING / peak);
-    sampleSpectra[key] = measureSpectrum(ch, s.buffer.sampleRate);
-  });
+  Object.keys(sampleSources).forEach(connectSample);
 
   const fft = new p5.FFT(0.8, 512);
   fft.setInput(masterGain);
@@ -305,7 +317,7 @@ function confirmStep() {
 }
 
 /**
- * 결과를 window.EAR_RESULT와 localStorage에 남김 (청감 클라우드 연결용)
+ * 결과를 window.EAR_RESULT와 localStorage에 남김. 청감타워 전송은 달팽이를 밀 때 (tour.js의 sendToTower)
  */
 function saveEarResult() {
   const gs = window.GlobalState;
@@ -322,11 +334,6 @@ function saveEarResult() {
     localStorage.setItem(EAR_RESULT_KEY, JSON.stringify(out));
   } catch (e) {
     // 저장소를 못 쓰는 브라우저: 화면 결과만
-  }
-
-  // 청감 클라우드로 전송 (뒤에서 — 화면 흐름을 막지 않음)
-  if (window.svartCloud) {
-    window.svartCloud.sendEar(out);
   }
 }
 
@@ -369,7 +376,6 @@ function updateFlow(dt) {
 
   const stage = window.GlobalState.currentStage;
   if (PART1_ADJUST[stage]) updateAdjust(stage, dt);
-  if (stage.startsWith('PART2_')) updatePart2();
   if (stage === 'RESULT') updateTour();
 
   sourceWatchTimer += dt;
@@ -397,7 +403,7 @@ function watchActiveSource() {
 }
 
 /**
- * 4. ①③④ 조절 단계: 위아래로 쓸기 → 값
+ * 4. ①②③ 조절 단계: 위아래로 쓸기 → 값
  */
 function beginAdjust(stage) {
   const cfg = PART1_ADJUST[stage];
@@ -413,6 +419,10 @@ function updateAdjust(stage, dt) {
   const p1 = window.GlobalState.part1;
   stepElapsed += dt;
   p1.hasMoved = movedPath >= cfg.moveThreshold && stepElapsed >= MIN_STEP_SECONDS;
+  if (voiceCue.downPath >= VOICE_DOWN_RATIO && !voiceCue.down && !voiceCue.confirm && !voiceBusy()) {
+    voiceCue.down = true;
+    say(['1-4']);
+  }
   if (p1.hasMoved && !voiceCue.confirm && !voiceBusy() && millis() - p1.lastDragAt > CONFIRM_VOICE_QUIET_MS) {
     voiceCue.confirm = true;
     say([ADJUST_VOICE[stage].confirm]);
@@ -425,7 +435,7 @@ function canConfirmAdjust() {
 }
 
 /**
- * ①은 지시문대로 위로 쓸면 1-2·1-3, 그다음 아래로 쓸면 1-4
+ * ①은 지시문대로 위로 쓸면 1-2·1-3, 그다음 아래로 쓸면 1-4 (1-2·1-3을 끊지 않고 끝난 뒤에, updateAdjust)
  */
 function voiceOnDrag(stage, dyRatio) {
   if (stage !== 'PART1_VOLUME') return;
@@ -433,9 +443,8 @@ function voiceOnDrag(stage, dyRatio) {
   if (dyRatio > 0 && !voiceCue.up) {
     voiceCue.up = true;
     say(['1-2', '1-3']);
-  } else if (dyRatio < 0 && voiceCue.up && !voiceCue.down && !voiceCue.confirm) {
-    voiceCue.down = true;
-    say(['1-4']);
+  } else if (dyRatio < 0 && voiceCue.up) {
+    voiceCue.downPath = (voiceCue.downPath || 0) - dyRatio;
   }
 }
 
@@ -451,7 +460,7 @@ function dragAdjust(dyRatio) {
   const next = constrain(adjustValue + dyRatio * cfg.span, cfg.min, cfg.max);
   movedPath += Math.abs(next - adjustValue);
   adjustValue = next;
-  window.GlobalState.part1.lastDragAt = millis(); // 비주얼: 반죽을 누르는 손가락 자국
+  window.GlobalState.part1.lastDragAt = millis(); // 비주얼: 덩어리를 누르는 손가락 자국
   voiceOnDrag(stage, dyRatio);
   applyAdjust(stage);
 }
@@ -589,10 +598,6 @@ function aWeighting(f) {
 /**
  * 결과 단계: 내 EQ ↔ 원래 소리 슬라이더(0 = 원래 소리, 1 = 내 EQ) 및 비교
  */
-function toggleResultBypass() {
-  setResultBypass(!window.GlobalState.part1.isBypassed);
-}
-
 function setResultEqMix(mix) {
   const p1 = window.GlobalState.part1;
   const m = constrain(mix, 0, 1);
@@ -607,7 +612,7 @@ function setResultBypass(on) {
 }
 
 /**
- * 6. ② 음역 고르기
+ * 6. ④ 음역 고르기
  */
 function startRegisterTrial() {
   const reg = window.GlobalState.part1.register;

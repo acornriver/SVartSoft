@@ -92,8 +92,10 @@ const COPY = {
     'intro.voice': '음성 안내',
 
     'hint.listening': '잘 들어보세요…',
-    'hint.result1': '화면을 누르고 있는 동안은 원래 소리',
+    'hint.result1': '슬라이더로 원래 소리와 내 귀 소리를 비교해보세요',
     'hint.result2': '달팽이를 오른쪽으로 밀면 청감타워로 가요',
+    'result.eqOrig': '원래 소리',
+    'result.eqMine': '내 귀 EQ',
 
 
     'axis.low': '낮은 소리',
@@ -114,7 +116,6 @@ const COPY = {
     'tour.line': '이 귀로 북서울미술관 주변을 걸어 볼게요',
     'tour.now': '지금 걷는 곳',
     'place.water': '당현천',
-    'place.walk-stair': '중계역 계단',
     'place.train-go': '중계역 지하철',
     'place.car-move': '북서울미술관 앞',
     'sent.title': '청감타워로 갔어요',
@@ -127,8 +128,8 @@ const COPY = {
     'row.register': '껍질 · 음역',
     'row.hearing': '꼬임 · 들리는 높이',
     'row.pan': '색 · 가운데',
-    'row.ear': '우세 귀',
-    'row.pitch': '껍질 모양 · 바탕음/배음',
+    'row.ear': '껍질 모양 · 우세 귀',
+    'row.pitch': '바탕음/배음',
     'register.LOW': '저음역',
     'register.MID': '중음역',
     'register.HIGH': '고음역',
@@ -149,8 +150,10 @@ const COPY = {
     'intro.voice': 'Voice guide',
 
     'hint.listening': 'Listen…',
-    'hint.result1': 'Hold the screen to hear the original',
+    'hint.result1': 'Slide to compare the original sound and your ear EQ',
     'hint.result2': 'Push the snail to the right to send it to the Hearing Tower',
+    'result.eqOrig': 'Original',
+    'result.eqMine': 'My Ear EQ',
 
 
     'axis.low': 'low',
@@ -171,7 +174,6 @@ const COPY = {
     'tour.line': 'Let’s walk around the Buk-Seoul Museum of Art with these ears',
     'tour.now': 'Now walking',
     'place.water': 'Danghyeoncheon Stream',
-    'place.walk-stair': 'Junggye Station stairs',
     'place.train-go': 'Junggye Station subway',
     'place.car-move': 'In front of Buk-Seoul Museum of Art',
     'sent.title': 'Off to the Hearing Tower',
@@ -184,8 +186,8 @@ const COPY = {
     'row.register': 'Shell · register',
     'row.hearing': 'Twist · highest heard',
     'row.pan': 'Color · middle',
-    'row.ear': 'Leading ear',
-    'row.pitch': 'Shell shape · pitch',
+    'row.ear': 'Shell shape · leading ear',
+    'row.pitch': 'Pitch mode',
     'register.LOW': 'Low',
     'register.MID': 'Mid',
     'register.HIGH': 'High',

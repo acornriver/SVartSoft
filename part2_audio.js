@@ -14,7 +14,7 @@
  *
  * 음악처럼 (사용자 지시 11/02 "적극적으로 음악 소리 바꿔도 됨" → 측정은 살리는 쪽을 고름). 박자는 120 BPM(P2_GROOVE):
  *   ⑦ 0.25초 음 · ⑧ 0.5초 음과 0.25초 쉼이 원래 120 BPM의 8분·4분음표라 측정 소리 길이는 그대로
- *   ⑤ 삐 간격만 0.3초 → 0.25초(8분음표). 밑에 4분음표 킥(45–140 Hz라 8 kHz 넘는 삐를 가리지 않음)
+ *   ⑤ 삐 간격만 0.3초 → 0.25초(8분음표). 뒤의 쿵쿵 비트는 뺌 (사용자 지시 11/06)
  *   ⑥ 말소리 대신 Part 1 비트를 120 BPM으로 그려서 머리 둘레로 돌림 (못 그리면 말소리로)
  *   ⑦ 밑에 4분음표 킥 (두 귀에 똑같이, 400/800 Hz와 떨어져 있음)
  *   ⑧ 앞에 하이햇 카운트인 (7 kHz 위라 배음과 안 겹침). 킥은 빠진 바탕음을 채울 수 있어 넣지 않음
@@ -37,7 +37,7 @@ const PART2_MOVE_THRESHOLD = 0.25; // 이만큼은 굴려야 확정 가능
 const CENTER_DEG_PER_WIDTH = 300;  // ⑥ 화면 너비만큼 쓸면 머리 둘레를 이만큼 돎
 const CENTER_SIDE_DEG = 5;         // ⑥ 치우침이 이 안이면 코드에서 C(가운데)
 
-const P2_GROOVE = { bpm: 120, sensKickSpl: 48, earKickSpl: 54, hatSpl: 44, countIn: 4 };
+const P2_GROOVE = { bpm: 120, earKickSpl: 54, hatSpl: 44, countIn: 4 };
 const P2_BEAT_SEC = 60 / P2_GROOVE.bpm;
 
 let part2Bus = null;
@@ -155,7 +155,7 @@ function p2AddHat(buf, at, spl) {
 
 /* =====================================================================
  * ⑤ 고역 예민도 (ref js/tests/sensitivity.js)
- * 경로 u (0→1): 주파수 8 → 16 kHz (로그), 크기 60 → 15 dB SPL(명목). 0.2초 켜짐 · 0.05초 꺼짐(120 BPM 8분음표). 밑에 4분음표 킥.
+ * 경로 u (0→1): 주파수 8 → 16 kHz (로그), 크기 60 → 15 dB SPL(명목). 0.2초 켜짐 · 0.05초 꺼짐(120 BPM 8분음표).
  * 안 들리게 되는 순간 누름. 누른 시각에서 반응 시간 rtSec을 뺌. 소리 전에 누르면 마지막에 한 번 더.
  * ===================================================================== */
 
@@ -225,7 +225,6 @@ function sensBuffer() {
       R[pre + s0 + i] = v;
     }
   }
-  for (let t = 0; t < pre + sweep; t += Math.round(P2_BEAT_SEC * sr)) p2AddKick(buf, t, P2_GROOVE.sensKickSpl);
   return buf;
 }
 
@@ -561,10 +560,6 @@ const PART2_TESTS = {
   }
 };
 
-function isPart2Stage(stage) {
-  return !!PART2_TESTS[stage];
-}
-
 function part2Later(ms, fn) {
   const p2 = part2State();
   const tok = p2.token;
@@ -693,7 +688,7 @@ function part2AfterAnswer(key, value) {
   // ⑤는 저절로 다음으로 가지 않고 고르기를 기다림 (덩어리 톡 = 한 번 더, 덩어리 꾹 = 다음)
   if (window.GlobalState.currentStage === 'PART2_SENSITIVITY') {
     p2.phase = 'choice';
-    if (note) sayGuide(['5-7', '5-8']);
+    if (note) sayGuide(['5-7', p2.logic.canMore() ? '5-8' : '5-4']); // 다 써 버렸으면 다시 듣기가 안 되니 꾹 안내
     else sayGuide([...(p2.logic.canMore() ? ['5-3'] : []), ...(p2.logic.canFinish() ? ['5-4'] : [])]);
     return;
   }
@@ -766,14 +761,6 @@ function leavePart2() {
   stopPart2Sounds();
 }
 
-function isPart2Playing() {
-  const ph = part2State().phase;
-  return ph === 'playing' || ph === 'lead' || ph === 'example' || ph === 'loading';
-}
-
-// 매 프레임 (part1_audio.js의 updateFlow()에서 호출). 지금은 할 일 없음
-function updatePart2() {}
-
 /* =====================================================================
  * 손짓 (main.js)
  * ===================================================================== */
@@ -828,6 +815,11 @@ function releaseRoll() {
   const side = rollSide(p2.roll);
   p2.roll = side === 'L' ? -PART2_SNAP : side === 'R' ? PART2_SNAP : 0;
   if (ok) confirmPart2();
+}
+
+// 터치가 끊기면 답하지 않고 가운데로
+function cancelRoll() {
+  part2State().roll = 0;
 }
 
 function rollSide(roll) {

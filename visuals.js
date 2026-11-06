@@ -9,14 +9,16 @@
  *   ① 크기  → 덩어리가 부풀거나 줄어듦
  *   ② 저음  → 왼쪽 아래가 부풀거나 눌림 (달팽이가 되면 꼬리)
  *   ③ 고음  → 오른쪽 위가 부풀거나 눌림 (달팽이가 되면 머리)
- *   ④ 음역  → 뾰루지처럼 튀어나올 자리 (저음역 왼쪽 / 중음역 가운데 / 고음역 오른쪽). 달팽이가 되면 껍질
+ *   ④ 음역  → 몸이 뾰루지처럼 튀어나올 자리 (저음역 왼쪽 / 중음역 가운데 / 고음역 오른쪽). 껍질은 안 보이고 결과 화면에서 처음 나옴
  *   Part 2  → ⑤ 선 꼬임, ⑥ 선 색(돌리는 동안 실시간). ⑦⑧은 덩어리가 좌우로 움직여 답함
- *             ⑧ 결과는 껍질 모양(네모/동그라미)인데 결과 화면에서만 보임. ⑦ 우세 귀의 표시는 미정이라 몸에 나타나지 않음
- * - 결과: 달팽이가 된 뒤 북서울 주변을 걷는다 (뒤에 그 장소 영상을 고대비 흑백으로). 더듬이도 이때 나옴. 보내면 오른쪽으로 기어 나감
+ *             ⑦ 우세 귀 결과는 껍질 모양(왼쪽 네모 / 오른쪽 동그라미)인데 결과 화면에서만 보임. ⑧ 파티클(점액)은 스포일러라 없앰
+ * - 결과: 달팽이가 된 뒤 사운드스케이프 3곡을 골라 들으며 귀를 기울인다 (뒤에 그 장소 영상을 고대비 흑백으로). 더듬이도 이때 나옴.
+ *         원래 소리 ↔ 내 귀 EQ 슬라이더로 비교하고, 보내면 오른쪽으로 기어 나감
  * 조절 중에는 dB 값이나 눈금 숫자를 크게 보여주지 않는다. 값은 우상단에 작은 디버그 숫자로만 표시.
  * 섬광은 눈에 부담이 없도록 아주 옅게만 쓴다 (깜빡이는 스트로브 아님).
- * 첫 화면의 확성기·언어 말고는 버튼이 없다. 확정은 덩어리를 꾹 누르기, 다시 듣기는 덩어리 톡, 음역은 위쪽 A/B/C 자리를 톡,
- * 결과에서는 누르고 있는 동안 원래 소리, 달팽이를 오른쪽으로 밀면 청감타워로 (입력은 main.js)
+ * 버튼은 첫 화면의 확성기·언어, 검사 화면의 음성 크기 슬라이더, 결과 화면의 3곡 버튼·EQ 슬라이더뿐이다.
+ * 확정은 덩어리를 꾹 누르기, 다시 듣기는 덩어리 톡, 음역은 위쪽 A/B/C 자리를 톡,
+ * 결과에서는 빈 곳을 누르고 있는 동안 원래 소리, 달팽이를 오른쪽으로 밀면 청감타워로 (입력은 main.js)
  * 문구는 모두 copy.js의 t()로 가져온다 (한국어 / English). 음성 안내가 나오는 동안은 그 자막을 위에, 조용할 때는 지금 할 일을 아래에 보여 준다.
  */
 
@@ -52,7 +54,10 @@ const VOICE_SLIDER = { width: 120, hit: 26 }; // 음성 크기 슬라이더: 길
 const RESULT_TEXT_DELAY = 4000; // 달팽이로 바뀌는 장면을 먼저 보여 주고 글자를 띄움
 const FORM_REVEAL = 0.022;  // 결과 화면에서 덩어리가 달팽이로 바뀌는 속도 (프레임당, 2초쯤. Claude가 정함)
 const SHELL_POP = { spring: 0.2, damp: 0.7 }; // ④ 혹이 튀어나오는 탄성 (Claude가 정함)
-const PITCH_SHELL = { F: 1, B: 0.5, H: 0 };   // ⑧ 껍질 모양: 바탕음 = 네모, 섞임 = 둥근 네모(Claude가 정함), 배음 = 동그라미
+const SHELL_REVEAL = { from: 0.55, to: 0.8 }; // 결과 화면: cur.form이 이 사이를 지나는 동안 껍질이 나옴 (0.6초쯤. Claude가 정함)
+const EAR_SHELL = { LEFT: 1, RIGHT: 0 };      // ⑦ 우세 귀 → 껍질 모양: 왼쪽 = 네모, 오른쪽 = 동그라미 (사용자 지시 11/06)
+const RESULT_EQ_SLIDER = { hit: 28 };         // 결과 화면 원래 소리 ↔ 내 귀 EQ 슬라이더 손끝 판정 여유
+const LISTEN_ANIM_MS = 2200;                  // 곡 버튼을 눌렀을 때 달팽이가 더 크게 귀 기울이는 시간
 const BACKDROP_WASH = 110;  // 결과 화면 영상 위에 덮는 검정 (0~255). 글자 자리는 따로 더 어둡게
 const OUTLINE_POINTS = 160;
 const WAVE_GAIN = 0.8;      // 파형이 윤곽을 흔드는 크기 (반지름 배율, ①에서 고른 볼륨과 상관없이 같은 크기로)
@@ -258,6 +263,10 @@ function isIntroControl(el) {
 function fitIntroInput() {
   const n = [...intro.input.value].length || [...intro.input.placeholder].length;
   intro.input.style.width = Math.max(2.4, n * 1.02 + 0.5) + 'em';
+  // 이름이 길면 제목 전체를 줄여 화면 안에 둠
+  intro.form.style.fontSize = '';
+  const room = window.innerWidth - 48, w = intro.form.getBoundingClientRect().width;
+  if (w > room) intro.form.style.fontSize = parseFloat(getComputedStyle(intro.form).fontSize) * room / w + 'px';
 }
 
 /* =====================================================================
@@ -340,9 +349,9 @@ function calculateUILayout() {
   let stageTop = 160;
   let stageBottom = btn.y - 60;
   let groundK = 0.72;
-  if (stage === 'RESULT') { stageTop = m + 200; stageBottom = btn.y - 170; groundK = 0.82; }
+  if (stage === 'RESULT') { stageTop = m + 185; stageBottom = btn.y - 230; groundK = 0.72; }
   const stageH = max(160, stageBottom - stageTop);
-  let R0 = min(width * (stage === 'RESULT' ? 0.13 : 0.12), stageH * 0.2);
+  let R0 = min(width * (stage === 'RESULT' ? 0.125 : 0.12), stageH * 0.2);
   let groundY = stageTop + stageH * groundK;
   if (isIntroStage(stage)) { R0 = min(width, height) * 0.075; groundY = height * 0.86; }
 
@@ -350,6 +359,51 @@ function calculateUILayout() {
   return { m, btn, hintY: btn.y + btnH / 2, cx: width / 2, groundY, R0, track: max(R0 * 1.4, width * 0.28), x0: m + 8, x1: width - m - 8 };
 }
 /* ---------- 터치 판정 (main.js가 씀) ---------- */
+
+// 결과 화면: 사운드스케이프 3곡 선택 버튼 영역
+function resultTrackBoxes(L = calculateUILayout()) {
+  const n = TOUR_PLACES.length;
+  const totalW = min(width - L.m * 2, 560);
+  const gap = 10;
+  const bw = (totalW - gap * (n - 1)) / n;
+  const bh = 38;
+  const x0 = width / 2 - totalW / 2;
+  const y = (cur ? cur.groundY : L.groundY) + 18;
+  return TOUR_PLACES.map((p, i) => ({
+    index: i,
+    key: p.key,
+    x: x0 + i * (bw + gap),
+    y,
+    w: bw,
+    h: bh,
+    cx: x0 + i * (bw + gap) + bw / 2,
+    cy: y + bh / 2
+  }));
+}
+
+function hitResultTrack(px, py) {
+  if (window.GlobalState.currentStage !== 'RESULT') return -1;
+  const hit = resultTrackBoxes().find((b) => px >= b.x - 4 && px <= b.x + b.w + 4 && py >= b.y - 6 && py <= b.y + b.h + 6);
+  return hit ? hit.index : -1;
+}
+
+// 결과 화면: 원래 소리(0) ↔ 내 귀 EQ(1) 슬라이더 영역
+function resultEqSliderBox(L = calculateUILayout()) {
+  const w = min(width - L.m * 2 - 190, 280);
+  const y = (cur ? cur.groundY : L.groundY) + 84;
+  return { x0: width / 2 - w / 2, x1: width / 2 + w / 2, y };
+}
+
+function hitResultEqSlider(px, py) {
+  if (window.GlobalState.currentStage !== 'RESULT') return false;
+  const b = resultEqSliderBox();
+  return px >= b.x0 - RESULT_EQ_SLIDER.hit && px <= b.x1 + RESULT_EQ_SLIDER.hit && Math.abs(py - b.y) <= RESULT_EQ_SLIDER.hit;
+}
+
+function resultEqMixAt(px) {
+  const b = resultEqSliderBox();
+  return constrain((px - b.x0) / Math.max(1, b.x1 - b.x0), 0, 1);
+}
 
 // 달팽이(몸 + 껍질)를 눌렀는지. 손가락이라 조금 넉넉하게
 function hitSnail(px, py) {
@@ -370,12 +424,14 @@ function registerSpotAt(px, py) {
   return 2;
 }
 
-// 테스트와 안내용: 덩어리 가운데, 세 자리의 화면 좌표
+// 테스트와 안내용: 덩어리 가운데, 세 자리, 결과 화면 3곡 버튼 및 EQ 슬라이더의 화면 좌표
 function getTouchTargets() {
   if (!lastShape) return null;
   return {
     snail: { x: lastShape.cx, y: lastShape.cy },
-    spots: REGISTERS.map((r) => ({ x: lastShape.cx + SHELL_SPOT[r.id] * cur.R0, y: cur.groundY - cur.R0 * 3.1 }))
+    spots: REGISTERS.map((r) => ({ x: lastShape.cx + SHELL_SPOT[r.id] * cur.R0, y: cur.groundY - cur.R0 * 3.1 })),
+    tracks: resultTrackBoxes().map((b) => ({ x: b.cx, y: b.cy })),
+    eqSlider: resultEqSliderBox()
   };
 }
 
@@ -457,9 +513,9 @@ function targetParams(L) {
     press: pressing ? 1 : 0,
     pressAngle: stage === 'PART1_VOLUME' ? -HALF_PI : stage === 'PART1_HIGH' ? HEAD_ANGLE : TAIL_ANGLE,
     shellOn: sh.on, shellX: sh.x, shellKey: sh.key,
-    shellSquare: stage === 'RESULT' ? PITCH_SHELL[gs.psychoProfile.pitchMode] || 0 : 0, // 검사 중에는 답이 드러나지 않게 (사용자 지시)
+    shellSquare: stage === 'RESULT' ? (EAR_SHELL[gs.psychoProfile.dominantEar] ?? 0) : 0, // ⑦ 우세 귀에 따른 네모/동그라미 등껍질 (결과에서만 표시)
     helix: tw === null ? 0 : 1, twist: tw === null ? 0 : tw,
-    dim: stage === 'RESULT' && gs.part1.isBypassed ? 0.45 : 1
+    dim: stage === 'RESULT' ? lerp(0.45, 1, typeof gs.part1.eqMix === 'number' ? gs.part1.eqMix : (gs.part1.isBypassed ? 0 : 1)) : 1
   };
 }
 
@@ -502,10 +558,22 @@ function sendOffset() {
   return e * (width * 0.5 + cur.R0 * 4);
 }
 
+// 결과 화면에서 달팽이가 소리에 귀 기울이는 정도 (0~1): 곡을 바꾼 직후 더 크게 반응하고, 평소에도 음량에 맞춰 리듬을 탐
+function resultListenState() {
+  if (window.GlobalState.currentStage !== 'RESULT' || sendProgress() >= 0) return { boost: 0, level: 0, dir: 0 };
+  const ampNode = window.GlobalState.audioNodes.amplitude;
+  const level = ampNode ? constrain(ampNode.getLevel() * 4.5, 0, 1) : 0;
+  const elapsed = millis() - (tourState().listenAt || -1e9);
+  const boost = elapsed >= 0 && elapsed < LISTEN_ANIM_MS ? Math.sin((elapsed / LISTEN_ANIM_MS) * Math.PI) : 0;
+  const dir = (tourState().index || 0) - (TOUR_PLACES.length - 1) / 2; // 왼쪽 곡(-1) · 가운데(0) · 오른쪽(+1)
+  return { boost, level, dir };
+}
+
 /**
  * 외곽선: 원을 일렁이게 한 뒤 꼬리·머리 방향으로 가우스 모양 혹을 밀어 냄.
  * cur.form 0이면 값만큼 넓게 부풀거나 눌린 덩어리이고(꼬리·머리로 안 보임), 1이면 달팽이.
- * 달팽이에 가까울수록 몸은 낮고 길쭉해지고, 아랫면은 바닥에 눌려 평평해짐. 킥에 눌리고, 기어갈 때 늘었다 줄었다 함
+ * 달팽이에 가까울수록 몸은 낮고 길쭉해지고, 아랫면은 바닥에 눌려 평평해짐. 킥에 눌리고, 기어갈 때 늘었다 줄었다 함.
+ * 결과 화면에서는 선택된 곡을 들어보며 머리를 까딱이고 귀를 기울임.
  */
 function bodyShape() {
   const time = millis() / 1000;
@@ -513,18 +581,23 @@ function bodyShape() {
   const form = cur.form;
   const F = (cur.tailF + cur.headF) / 2 * form;
   const sending = sendProgress() >= 0;
-  const crawl = (sending ? 1.6 : Math.max(cur.crawl, 1.4 * cur.move)) * Math.sin(time * (sending ? 7 : cur.move > 0.1 ? 6 : 1.8));
-  const hs = (1 + 0.16 * F) * (1 + 0.06 * pulse.kick) * (1 + 0.06 * crawl);
-  const vs = (1 - 0.22 * F) * (1 - 0.1 * pulse.kick) * (1 - 0.05 * crawl);
+  const listen = resultListenState();
+  const listenGroove = (0.35 + 0.65 * listen.level + 0.8 * listen.boost) * form;
+  const crawl = (sending ? 1.6 : Math.max(cur.crawl, 1.4 * cur.move)) * Math.sin(time * (sending ? 7 : cur.move > 0.1 ? 6 : 2.4));
+  const hs = (1 + 0.16 * F) * (1 + 0.06 * pulse.kick) * (1 + 0.05 * crawl) * (1 + 0.03 * listen.boost * Math.sin(time * 5.2));
+  const vs = (1 - 0.22 * F) * (1 - 0.1 * pulse.kick) * (1 - 0.04 * crawl) * (1 - 0.03 * listen.boost * Math.sin(time * 5.2));
   const flatY = R0 * 0.72 * vs;
-  const cx = cur.cx + sendOffset();
+  const cx = cur.cx + sendOffset() + listen.dir * R0 * 0.12 * listen.boost;
   const cy = cur.groundY - flatY;
 
   const tailSigma = lerp(0.62, 0.32 + 0.2 * cur.tailG, form);
   const tailLen = cur.tailF * R0 * lerp(0.18 + 0.42 * cur.tailG, 1.0 + 0.45 * cur.tailG, form);
   const headSigma = lerp(0.62, 0.4 + 0.14 * cur.headG, form);
   const headLen = cur.headF * R0 * lerp(0.16 + 0.4 * cur.headG, 0.75 + 0.35 * cur.headG, form);
-  // ④ 뾰루지: 살이 껍질 자리로 밀려 나옴. 달팽이가 되면 그 위에 껍질이 올라앉음
+  // 결과 화면에서 소리를 들어보는 고개 까딱임
+  const headNod = listenGroove * (0.12 * Math.sin(time * 4.4) + 0.14 * listen.boost);
+  const headAngle = HEAD_ANGLE - headNod;
+  // ④ 뾰루지: 살만 밀려 나옴. 달팽이가 되면 이 자리에서 껍질이 나와 등에 올라앉음
   const pimpleLen = Math.min(cur.shellOn, 1.2) * R0 * 0.62 * (1 - form);
   const pimpleAngle = -Math.acos(constrain(cur.shellX / R0, -0.95, 0.95));
 
@@ -539,10 +612,10 @@ function bodyShape() {
     const wt = Math.exp(-sq(angDiff(th, TAIL_ANGLE) / tailSigma));
     x -= tailLen * wt;
     y += 0.25 * tailLen * wt;
-    // 머리: 끝이 둥근 혹(4제곱 창)을 오른쪽 위로
-    const wh = Math.exp(-sq(sq(angDiff(th, HEAD_ANGLE) / headSigma)));
+    // 머리: 끝이 둥근 혹(4제곱 창)을 오른쪽 위로 (결과 화면에서는 리듬에 맞춰 고개를 까딱임)
+    const wh = Math.exp(-sq(sq(angDiff(th, headAngle) / headSigma)));
     x += headLen * wh * 0.9;
-    y -= headLen * wh * 0.45;
+    y -= headLen * wh * (0.45 + 0.18 * headNod);
 
     const wp = Math.exp(-sq(angDiff(th, pimpleAngle) / 0.36));
     x += Math.cos(pimpleAngle) * pimpleLen * wp;
@@ -560,7 +633,7 @@ function bodyShape() {
 
   const pts = [];
   for (let i = 0; i < OUTLINE_POINTS; i++) pts.push(pointAt((i / OUTLINE_POINTS) * TWO_PI));
-  return { pts, cx, cy, R0, headTip: pointAt(HEAD_ANGLE), pressPt: pointAt(cur.pressAngle), pimpleTip: pointAt(pimpleAngle), pimpleAngle };
+  return { pts, cx, cy, R0, headTip: pointAt(headAngle), pressPt: pointAt(cur.pressAngle), pimpleTip: pointAt(pimpleAngle), pimpleAngle };
 }
 
 // 등 위(또는 바닥)의 높이: x 근처 외곽선 중 가장 위. 몸을 벗어나면 바닥
@@ -702,27 +775,32 @@ function drawReplayRing(ctx, shape) {
   ctx.restore();
 }
 
-// 더듬이 두 개: 머리 위에서 오른쪽 위로. 끝까지 없다가 달팽이가 되면서 자라 나옴 (사용자 지시). 머리를 키울수록 길어지고, 하이햇에 까딱임
+// 더듬이 두 개: 머리 위에서 오른쪽 위로. 끝까지 없다가 달팽이가 되면서 자라 나옴 (사용자 지시).
+// 결과 화면에서는 라디오 안테나처럼 쫑긋하며 고른 소리에 맞춰 흔들리고 음파 고리를 받음
 function drawAntennae(ctx, shape) {
   const grow = constrain((cur.form - 0.5) / 0.5, 0, 1);
   if (grow <= 0) return;
   const R0 = shape.R0;
   const tip = shape.headTip;
   const time = millis() / 1000;
-  const len = R0 * (0.6 + 0.25 * cur.headG * cur.headF) * grow;
-  const flick = pulse.hat * 0.12;
+  const listen = resultListenState();
+  const perk = 1 + (0.14 * listen.boost + 0.1 * listen.level) * grow;
+  const len = R0 * (0.6 + 0.25 * cur.headG * cur.headF) * grow * perk;
+  const flick = pulse.hat * 0.12 + (listen.level * 0.14 + listen.boost * 0.18) * Math.sin(time * 5.2);
+  const tips = [];
   [
-    { bx: -R0 * 0.24, by: R0 * 0.12, a: -1.25 - flick + Math.sin(time * 1.3) * 0.08 },
-    { bx: -R0 * 0.04, by: R0 * 0.14, a: -0.72 - flick + Math.sin(time * 1.3 + 1.2) * 0.08 }
+    { bx: -R0 * 0.24, by: R0 * 0.12, a: -1.25 - flick + listen.dir * 0.12 * listen.boost + Math.sin(time * 2.1) * (0.08 + 0.1 * listen.boost) },
+    { bx: -R0 * 0.04, by: R0 * 0.14, a: -0.72 + flick * 0.7 + listen.dir * 0.12 * listen.boost + Math.sin(time * 2.1 + 1.2) * (0.08 + 0.1 * listen.boost) }
   ].forEach((s) => {
     const pts = [];
     for (let k = 0; k <= 20; k++) {
       const q = k / 20;
-      const bend = Math.sin(q * Math.PI) * 0.18;
+      const bend = Math.sin(q * Math.PI) * (0.18 + 0.1 * listen.boost * Math.sin(time * 6 + q * 3));
       pts.push({ x: tip.x + s.bx + Math.cos(s.a - bend) * len * q, y: tip.y + s.by + Math.sin(s.a - bend) * len * q });
     }
     scopeStroke(ctx, pts, false, 0.9);
     const e = pts[pts.length - 1];
+    tips.push(e);
     ctx.save();
     ctx.strokeStyle = rgba(snailInk, 1);
     ctx.lineWidth = 1.5;
@@ -733,10 +811,38 @@ function drawAntennae(ctx, shape) {
     ctx.stroke();
     ctx.fillStyle = rgba(COLORS.accent, 1);
     ctx.beginPath();
-    ctx.arc(e.x, e.y, R0 * 0.035 * grow, 0, TWO_PI);
+    ctx.arc(e.x, e.y, R0 * (0.035 + 0.02 * listen.boost) * grow, 0, TWO_PI);
     ctx.fill();
     ctx.restore();
   });
+
+  // 달팽이가 소리를 들어보는 음파 고리 애니메이션 (결과 화면)
+  if (window.GlobalState.currentStage === 'RESULT' && sendProgress() < 0 && tips.length === 2) {
+    drawListeningWaves(ctx, tips, R0, grow, listen);
+  }
+}
+
+// 결과 화면에서 더듬이(라디오 안테나) 주변으로 번지는 음파 아크 — 곡을 고르거나 소리가 울릴 때 달팽이가 들어보는 연출
+function drawListeningWaves(ctx, tips, R0, grow, listen) {
+  const time = millis() / 1000;
+  const strength = constrain(0.35 + 0.45 * listen.level + 0.65 * listen.boost, 0, 1) * grow;
+  if (strength <= 0.02) return;
+  ctx.save();
+  ctx.lineCap = 'round';
+  tips.forEach((e, idx) => {
+    const baseAngle = idx === 0 ? -1.15 : -0.55;
+    for (let w = 0; w < 2; w++) {
+      const ph = (time * (1.1 + 0.5 * listen.boost) + w * 0.5 + idx * 0.25) % 1;
+      const rad = R0 * (0.14 + ph * (0.34 + 0.16 * listen.boost));
+      const alpha = (1 - ph) * strength * (listen.boost > 0.1 ? 0.85 : 0.55);
+      ctx.strokeStyle = rgba(w === 0 && listen.boost > 0.15 ? COLORS.accent : snailInk, alpha);
+      ctx.lineWidth = 1.3;
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, rad, baseAngle - 0.65, baseAngle + 0.65);
+      ctx.stroke();
+    }
+  });
+  ctx.restore();
 }
 
 // 껍질 가장자리의 반지름 배율. k 0 = 동그라미, 1 = 네모
@@ -744,12 +850,23 @@ function shellEdge(th, k) {
   return lerp(1, 0.86 / Math.max(Math.abs(Math.cos(th)), Math.abs(Math.sin(th))), k);
 }
 
-// 껍질: 파형을 나선으로 만 선. 덩어리일 때는 뾰루지 안에서 작게, 달팽이가 되면 등 위에서 크게.
-// 굴러간 거리만큼 돌아가고, 킥에 살짝 튐. ⑧ 결과에 따라 네모·동그라미 (사용자 지시)
+// 덩어리가 달팽이로 바뀌는 동안 껍질이 살짝 넘치게 커졌다 자리 잡음 (0~1.1쯤)
+function shellReveal(form) {
+  const u = constrain((form - SHELL_REVEAL.from) / (SHELL_REVEAL.to - SHELL_REVEAL.from), 0, 1) - 1;
+  return u <= -1 ? 0 : 1 + 2.7 * u * u * u + 1.7 * u * u;
+}
+
+// 껍질: 파형을 나선으로 만 선. 덩어리일 때는 없고 몸만 튀어나왔다가, 달팽이가 될 때 뾰루지 자리에서 짠 하고 나와 등에 합쳐짐 (사용자 지시).
+// 굴러간 거리만큼 돌아가고, 킥에 살짝 튐. ⑦ 결과에 따라 네모·동그라미 (사용자 지시)
 function drawShell(ctx, shape) {
   const R0 = shape.R0;
   const form = cur.form;
-  const rs = R0 * lerp(0.4, 0.72, form) * cur.shellOn;
+  const rs = R0 * 0.72 * cur.shellOn * shellReveal(form);
+  if (rs <= 0) {
+    shellAt = null;
+    prevShellX = null;
+    return;
+  }
   const onBackX = shape.cx + cur.shellX; // shape.cx는 보내기 중·⑦⑧ 움직인 거리까지 포함
   const onBackY = topYAt(shape, onBackX) - rs * 0.9 - pulse.kick * R0 * 0.1;
   const x = lerp(shape.pimpleTip.x - Math.cos(shape.pimpleAngle) * rs * 1.1, onBackX, form);
@@ -781,7 +898,7 @@ function drawShell(ctx, shape) {
   ctx.restore();
 }
 
-// 반죽을 누르는 손끝: 누르는 자리 바로 위의 점선 고리
+// 덩어리를 누르는 손끝: 누르는 자리 바로 위의 점선 고리
 function drawFingertip(ctx, shape) {
   const R0 = shape.R0;
   const p = shape.pressPt;
@@ -980,7 +1097,7 @@ function drawGuides(L) {
 
     if (p2.phase === 'pressing') hints.push(voiceText('5-2'));
     else if (p2.phase === 'choice') {
-      if (p2.note) hints.push(voiceText('5-8'));
+      if (p2.note && canReplayPart2()) hints.push(voiceText('5-8'));
       else {
         if (canConfirmPart2()) hints.push(voiceText('5-4'));
         if (canReplayPart2()) hints.push(voiceText('5-3'));
@@ -1061,22 +1178,82 @@ function drawResult(L) {
     pop();
   }
 
-  // 지금 걷는 곳 + 장소 진행 막대
-  const y = cur.groundY + 22;
-  label(t('tour.now'), width / 2, y, { family: FONT.mono, size: 11, c: COLORS.accent, a, align: CENTER, valign: TOP });
-  label(t(`place.${tourPlace().key}`), width / 2, y + 18, { size: 18, weight: 700, a, align: CENTER, valign: TOP });
-  const n = TOUR_PLACES.length;
-  const bw = 28, gap = 6, x0 = width / 2 - (n * bw + (n - 1) * gap) / 2;
-  const prog = constrain((millis() - tourState().placeAt) / (TOUR_SECONDS * 1000), 0, 1);
-  noStroke();
-  for (let i = 0; i < n; i++) {
-    fill(COLORS.line[0], COLORS.line[1], COLORS.line[2], a);
-    rect(x0 + i * (bw + gap), y + 50, bw, 2);
-    if (i === tourState().index) {
-      fill(COLORS.ink[0], COLORS.ink[1], COLORS.ink[2], a);
-      rect(x0 + i * (bw + gap), y + 50, bw * prog, 2);
+  // 곡(사운드스케이프) 3개 선택 버튼 + 원래 소리 ↔ 내 귀 EQ 슬라이더
+  drawResultControls(L, a);
+}
+
+function drawResultControls(L, a) {
+  const boxes = resultTrackBoxes(L);
+  const curIdx = tourState().index;
+  const prog = tourState().pinned ? 0 : constrain((millis() - tourState().placeAt) / (TOUR_SECONDS * 1000), 0, 1); // 고정한 곡은 넘어가지 않으니 진행 막대 없음
+
+  boxes.forEach((b, i) => {
+    const on = i === curIdx;
+    push();
+    fill(COLORS.card[0], COLORS.card[1], COLORS.card[2], a * (on ? 0.9 : 0.65));
+    stroke(
+      on ? COLORS.ink[0] : COLORS.line[0],
+      on ? COLORS.ink[1] : COLORS.line[1],
+      on ? COLORS.ink[2] : COLORS.line[2],
+      a
+    );
+    strokeWeight(on ? 1.5 : 1);
+    rect(b.x, b.y, b.w, b.h, 8);
+    if (on) {
+      noStroke();
+      fill(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2], a);
+      rect(b.x + 6, b.y + b.h - 3, (b.w - 12) * prog, 2, 1);
     }
-  }
+    pop();
+
+    // 굵은 글자 기준으로 재서, 버튼을 고르고 풀어도 줄바꿈이 그대로이게 함. 길면 작게 두 줄로
+    const title = `${i + 1} · ${t(`place.${b.key}`)}`;
+    const size = textW(title, 13, 700) > b.w - 16 ? 11 : 13;
+    wrapText(title, b.w - 12, size, 700).forEach((ln, k, lines) => label(ln, b.cx, b.cy - (on ? 1 : 0) + (k - (lines.length - 1) / 2) * 14, {
+      size,
+      weight: on ? 700 : 400,
+      c: on ? COLORS.ink : COLORS.mute,
+      a,
+      align: CENTER,
+      valign: CENTER
+    }));
+  });
+
+  // 원래 소리(0) ↔ 내 귀 EQ(1) 비교 슬라이더
+  const sb = resultEqSliderBox(L);
+  const p1 = gs().part1;
+  const mix = typeof p1.eqMix === 'number' ? p1.eqMix : (p1.isBypassed ? 0 : 1);
+  const sx = lerp(sb.x0, sb.x1, mix);
+
+  label(t('result.eqOrig'), sb.x0 - 12, sb.y, {
+    size: 12,
+    weight: mix < 0.5 ? 700 : 400,
+    c: mix < 0.5 ? COLORS.accent : COLORS.mute,
+    a,
+    align: RIGHT,
+    valign: CENTER
+  });
+  label(t('result.eqMine'), sb.x1 + 12, sb.y, {
+    size: 12,
+    weight: mix >= 0.5 ? 700 : 400,
+    c: mix >= 0.5 ? COLORS.ink : COLORS.mute,
+    a,
+    align: LEFT,
+    valign: CENTER
+  });
+
+  push();
+  stroke(COLORS.line[0], COLORS.line[1], COLORS.line[2], a);
+  strokeWeight(3);
+  line(sb.x0, sb.y, sb.x1, sb.y);
+  stroke(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2], a);
+  strokeWeight(3);
+  line(sb.x0, sb.y, sx, sb.y);
+  fill(COLORS.ink[0], COLORS.ink[1], COLORS.ink[2], a);
+  stroke(COLORS.bg[0], COLORS.bg[1], COLORS.bg[2], a);
+  strokeWeight(2);
+  circle(sx, sb.y, 16);
+  pop();
 }
 
 // 영상 위 글자가 읽히도록 위(이름·코드)와 아래(값·버튼)를 검정 그라데이션으로 가림

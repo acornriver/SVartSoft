@@ -59,7 +59,7 @@ function setVoiceOn(on) {
   window.GlobalState.voiceOn = on;
   applyVoiceGain();
   if (!on) setVoiceDuck(false);
-  else if (voiceNow) setVoiceDuck(true);
+  else if (voiceNow) setVoiceDuck(!!voiceClips[currentLang()][voiceNow]);
 }
 
 // 슬라이더 자리 0~1
@@ -123,7 +123,7 @@ function nextVoiceLine(run) {
     voiceSrc.connect(getVoiceBus());
     voiceSrc.start();
   }
-  if (window.GlobalState.voiceOn) setVoiceDuck(true);
+  setVoiceDuck(!!clip && window.GlobalState.voiceOn); // 재녹음 전이라 자막만 나오는 줄에서는 비트를 줄이지 않음
   const ms = (clip ? clip.duration : voiceText(id).length * VOICE_FALLBACK_SEC) * 1000;
   voiceTimer = setTimeout(() => nextVoiceLine(run), ms + VOICE_GAP_MS);
 }

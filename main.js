@@ -10,9 +10,11 @@
  *     ⑤ 고역 예민도 : 안 들리게 되는 순간 화면 아무 데나 톡 (손가락이 닿는 순간 바로). 다 들은 뒤 덩어리 톡 = 한 번 더, 덩어리 꾹 = 다음
  *     ⑥ 중앙        : 좌우로 끌기 = 비트를 머리 둘레로 돌리기, 덩어리 꾹 = 여기가 가운데
  *     ⑦⑧           : 좌우로 끌어 덩어리를 움직이고 손을 떼면 바로 답(왼쪽/오른쪽), 덩어리 톡 = 한 번 더 듣기
- *     결과          : 빈 곳을 누르고 있는 동안 = 원래 소리, 달팽이를 오른쪽으로 밀기 = 청감타워로 보내기
+ *     결과          : 3곡 버튼 톡 = 그 곡에 고정(달팽이가 들어봄), 슬라이더 = 원래 소리 ↔ 내 귀 EQ 비교,
+ *                     빈 곳을 누르고 있는 동안 = 원래 소리, 달팽이를 오른쪽으로 밀기 = 청감타워로 보내기
  *     검사 화면 오른쪽 위 슬라이더 : 음성 안내 크기. 잠겨 있어도 움직이고 검사 입력으로 치지 않음
  *     어느 단계든 IDLE_RESET_SECONDS 동안 아무도 안 만지면 첫 화면으로
+ *     쓸기 방향: ①②③은 위아래로, ⑥⑦⑧과 보내기는 좌우로 쓸 때만 동작. 처음 움직인 방향으로 정하고, 대각선은 무시 (사용자 지시 11/06)
  * - 안내 잠금(voice.js): 잠긴 동안 시작한 터치는 버리고, 풀린 뒤 새로 시작한 터치부터 반영
  * - 모바일 기본 스크롤 및 바운스 제스처 차단 (이름 입력 화면만 예외)
  */
@@ -20,16 +22,13 @@
 const HOLD_MS = 900;            // 꾹 누르기로 확정되기까지
 const REPLAY_TAP_MS = 500;      // 이보다 오래 누르면 다시 듣기가 아님 (확정이 안 될 때 꾹 눌렀다 뗀 손가락이 다시 듣기가 되지 않게. Claude가 정함)
 const TAP_MOVE_PX = 10;         // 이보다 많이 움직이면 톡·꾹이 아니라 끌기
+const DRAG_AXIS_RATIO = 1.5;    // 처음 움직인 방향이 이 배수만큼 위아래(또는 좌우)여야 쓸기로 침. 대각선은 무시 (56°쯤. Claude가 정함)
 const SEND_PUSH_RATIO = 0.18;   // 결과: 달팽이를 화면 너비의 이만큼 오른쪽으로 밀면 보내기
 const IDLE_RESET_SECONDS = 120; // 관람객이 자리를 떠나면 첫 화면으로
 
 let lastTouchTime = 0;
 let lastActivity = 0;
-let pointer = null; // 지금 누르고 있는 손가락 { x0, y0, x, y, lastX, lastY, t0, onSnail, canHold, mode: 'pending' | 'drag' | 'done' | 'voice' }
-
-function preload() {
-  preloadPart1();
-}
+let pointer = null; // 지금 누르고 있는 손가락 { x0, y0, x, y, lastX, lastY, t0, onSnail, canHold, mode: 'pending' | 'drag' | 'ignored' | 'done' | 'voice' | 'eq' }
 
 function setup() {
   const cnv = createCanvas(windowWidth, windowHeight);
@@ -39,10 +38,14 @@ function setup() {
   frameRate(60);
   setupIntro(submitName);
   setupBackdrops();
+  loadSamples();
   loadVoice();
 
   // 모바일 브라우저 롱프레스 컨텍스트 메뉴 차단
   cnv.elt.addEventListener('contextmenu', (e) => e.preventDefault());
+  // 시스템 제스처 등으로 터치가 끊기면 touchend가 오지 않음. p5가 touchcancel을 듣지 않아 직접 받음
+  window.addEventListener('touchcancel', pointerCancel);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) pointerCancel(); });
 }
 
 function draw() {
@@ -153,7 +156,20 @@ function pointerDown(px, py) {
   ensureAudioRunning();
   resumeBackdrop();
   lastActivity = millis();
-  if (window.GlobalState.currentStage === 'RESULT' && tourState().sendAt !== null) return;
+  if (window.GlobalState.currentStage === 'RESULT') {
+    if (tourState().sendAt !== null) return;
+    if (hitResultEqSlider(px, py)) {
+      pointer = { mode: 'eq' };
+      setResultEqMix(resultEqMixAt(px));
+      return;
+    }
+    const trackIdx = hitResultTrack(px, py);
+    if (trackIdx >= 0) {
+      pointer = { mode: 'done' };
+      selectTourPlace(trackIdx);
+      return;
+    }
+  }
   if (hitVoiceSlider(px, py)) {
     pointer = { mode: 'voice' };
     setVoiceLevel(voiceSliderLevelAt(px));
@@ -165,10 +181,15 @@ function pointerDown(px, py) {
   if (part2Tap()) return;
 
   const onSnail = hitSnail(px, py);
-  pointer = { x0: px, y0: py, x: px, y: py, lastX: px, lastY: py, t0: millis(), onSnail, canHold: canHoldConfirm(), mode: 'pending' };
+  const holdBypass = window.GlobalState.currentStage === 'RESULT' && !onSnail;
+  pointer = {
+    x0: px, y0: py, x: px, y: py, lastX: px, lastY: py, t0: millis(),
+    onSnail, canHold: canHoldConfirm(), mode: 'pending',
+    holdBypass, prevEqMix: window.GlobalState.part1.eqMix
+  };
 
-  // 결과: 달팽이가 아닌 곳을 누르면 누르고 있는 동안 원래 소리
-  if (window.GlobalState.currentStage === 'RESULT' && !onSnail) setResultBypass(true);
+  // 결과: 달팽이·버튼·슬라이더가 아닌 빈 곳을 누르면 누르고 있는 동안 원래 소리
+  if (holdBypass) setResultBypass(true);
 }
 
 function pointerMove(px, py) {
@@ -178,10 +199,14 @@ function pointerMove(px, py) {
     setVoiceLevel(voiceSliderLevelAt(px));
     return;
   }
+  if (pointer.mode === 'eq') {
+    setResultEqMix(resultEqMixAt(px));
+    return;
+  }
   pointer.x = px;
   pointer.y = py;
   if (pointer.mode === 'pending' && Math.hypot(px - pointer.x0, py - pointer.y0) > TAP_MOVE_PX) {
-    pointer.mode = 'drag';
+    pointer.mode = dragAxisOk(px - pointer.x0, py - pointer.y0) ? 'drag' : 'ignored';
     pointer.lastX = pointer.x0; // 끌기로 바뀌기 전 움직인 만큼도 반영
     pointer.lastY = pointer.y0;
   }
@@ -198,6 +223,25 @@ function pointerMove(px, py) {
   pointer.lastY = py;
 }
 
+// 지금 단계가 받는 방향으로 쓰기 시작했는지. ①②③ 위아래, ⑥⑦⑧·결과 좌우
+function dragAxisOk(dx, dy) {
+  const stage = window.GlobalState.currentStage;
+  if (PART1_ADJUST[stage]) return Math.abs(dy) >= Math.abs(dx) * DRAG_AXIS_RATIO;
+  if (stage.startsWith('PART2_') || stage === 'RESULT') return Math.abs(dx) >= Math.abs(dy) * DRAG_AXIS_RATIO;
+  return true;
+}
+
+// 터치가 중간에 끊김: 답이나 확정으로 치지 않고 손가락만 놓음
+function pointerCancel() {
+  if (!pointer) return;
+  const p = pointer;
+  pointer = null;
+  lastActivity = millis();
+  const stage = window.GlobalState.currentStage;
+  if (stage === 'RESULT' && p.holdBypass) setResultEqMix(p.prevEqMix);
+  if (p.mode === 'drag' && stage.startsWith('PART2_')) cancelRoll();
+}
+
 function pointerUp() {
   if (!pointer) return;
   const p = pointer;
@@ -205,7 +249,7 @@ function pointerUp() {
   lastActivity = millis();
   const stage = window.GlobalState.currentStage;
 
-  if (stage === 'RESULT') setResultBypass(false);
+  if (stage === 'RESULT' && p.holdBypass) setResultEqMix(p.prevEqMix);
   if (p.mode === 'drag' && stage.startsWith('PART2_')) releaseRoll();
   if (p.mode === 'pending') tapAt(p.x0, p.y0, millis() - p.t0);
 }

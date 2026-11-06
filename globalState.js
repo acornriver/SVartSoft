@@ -26,12 +26,13 @@ window.GlobalState = {
     lastDragAt: -1e9,      // 마지막으로 쓴 시각(millis). 비주얼의 손가락 자국용
     register: {
       order: [],           // 카드에 배정된 음역 id. x축이 음고라 항상 ['LOW', 'MID', 'HIGH']
-      playOrder: [],       // 처음 들려주는 카드 순서 (무작위, 예: [1, 0, 2])
+      playOrder: [],       // 처음 들려주는 카드 순서 (B-A-C 고정: [1, 0, 2])
       playingCard: -1,     // 현재 재생 중인 카드 인덱스
       selectedCard: -1,
       isAutoPlaying: false
     },
-    isBypassed: false      // 결과 단계: true면 EQ 없이 원래 소리
+    isBypassed: false,     // 결과 단계: true면 EQ 없이 원래 소리 (eqMix < 0.5)
+    eqMix: 1               // 결과 단계: 원래 소리(0.0) ↔ 내 귀 EQ(1.0) 슬라이더 위치
   },
 
   // Part 2 진행 상태 (part2_audio.js, 검사 내용은 ref/part2 (1).html)
@@ -51,10 +52,12 @@ window.GlobalState = {
     frozenU: null          // ⑤ 톡 한 순간의 경로 위치 (그 꼬임으로 멈춤)
   },
 
-  // 결과 화면: 북서울 산책과 청감타워로 보내기 (tour.js)
+  // 결과 화면: 북서울 산책(3곡 선택)과 청감타워로 보내기 (tour.js)
   tour: {
-    index: 0,              // TOUR_PLACES 안의 지금 장소
+    index: 0,              // TOUR_PLACES 안의 지금 장소 (0 ~ 2)
     placeAt: 0,            // 이 장소에 들어온 시각(millis)
+    listenAt: -1e9,        // 곡 버튼을 눌러 달팽이가 귀 기울여 듣기 시작한 시각(millis)
+    pinned: false,         // 곡 버튼을 눌렀으면 그 곡에 고정 (자동으로 넘어가지 않음)
     sendAt: null           // 보내기를 누른 시각(millis). null이면 아직
   },
 

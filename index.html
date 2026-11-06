@@ -10,12 +10,13 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="theme-color" content="#000000">
 
-  <!-- 웹 폰트 (Preload Google Fonts) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
-
   <style>
+    /* 웹 폰트: 인터넷 없이도 뜨도록 레포에 둠 (Latin + 한글 2,350자. 그 밖의 글자는 기기 기본 글꼴) */
+    @font-face { font-family: 'Noto Sans KR'; font-weight: 400; font-display: swap; src: url('./lib/fonts/NotoSansKR-400.woff2') format('woff2'); }
+    @font-face { font-family: 'Noto Sans KR'; font-weight: 500; font-display: swap; src: url('./lib/fonts/NotoSansKR-500.woff2') format('woff2'); }
+    @font-face { font-family: 'Noto Sans KR'; font-weight: 700; font-display: swap; src: url('./lib/fonts/NotoSansKR-700.woff2') format('woff2'); }
+    @font-face { font-family: 'IBM Plex Mono'; font-weight: 400; font-display: swap; src: url('./lib/fonts/IBMPlexMono-400.woff2') format('woff2'); }
+    @font-face { font-family: 'IBM Plex Mono'; font-weight: 500; font-display: swap; src: url('./lib/fonts/IBMPlexMono-500.woff2') format('woff2'); }
     /* 브라우저 기본 스크롤, 바운스, 줌, 텍스트 선택 완벽 차단 */
     *, *::before, *::after {
       box-sizing: border-box;
@@ -95,9 +96,9 @@
     @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
   </style>
 
-  <!-- p5.js 및 p5.sound 라이브러리 CDN 로드 -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/addons/p5.sound.min.js"></script>
+  <!-- p5.js 1.9.4 및 p5.sound (CDN에 의존하지 않게 lib/에 둠) -->
+  <script src="./lib/p5.min.js"></script>
+  <script src="./lib/p5.sound.min.js"></script>
 
   <!-- Part 1 전용 모듈 스크립트 (GitHub Pages 상대 경로 './' 사용) -->
   <!-- 1. 단일 전역 상태 정의 -->

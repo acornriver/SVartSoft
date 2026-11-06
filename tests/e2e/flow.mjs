@@ -45,6 +45,14 @@ const drag = async (dy) => {
   for (let k = 1; k <= 10; k++) { await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y: y0 - dy * k / 10, button: 'left', buttons: 1 }); await sleep(16); }
   await mouse('mouseReleased', x, y0 - dy); await sleep(400);
 };
+// 어느 방향으로든 쓸기 (쓸기 방향 구분 확인용)
+const sweep = async (dx, dy) => {
+  const x0 = W / 2, y0 = 520;
+  await mouse('mousePressed', x0, y0);
+  for (let k = 1; k <= 10; k++) { await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: x0 + dx * k / 10, y: y0 + dy * k / 10, button: 'left', buttons: 1 }); await sleep(16); }
+  await mouse('mouseReleased', x0 + dx, y0 + dy); await sleep(300);
+};
+const must = (ok, what) => { if (!ok) throw new Error(what); console.log('  ok:', what); };
 const expect = async (s) => { const cur = await stage(); if (cur !== s) throw new Error(`expected ${s}, got ${cur}`); console.log('✓', s); };
 
 const hdrag = async (dx) => {
@@ -101,7 +109,9 @@ await holdSnail(); await expect('PART1_VOLUME');
 await canHold(); await holdSnail(() => shot('01-volume-holding')); await expect('PART1_LOW');
 console.log('  next stage carries confirm line', await ev('voiceNow'));
 { const c0 = await control(); await drag(200); console.log('  intro not cut → busy', await ev('voiceBusy()'), 'swipe ignored', c0 === await control()); }
-await unlocked(); await drag(200); await canHold(); await shot('02-low');
+await unlocked();
+{ const c0 = await control(); await sweep(200, 0); await sweep(150, -150); must(c0 === await control(), '② 좌우·대각선으로 쓸면 안 바뀜'); }
+await drag(200); await canHold(); await shot('02-low');
 await holdSnail(); await expect('PART1_HIGH');
 await unlocked(); await drag(220); await canHold(); await shot('03-high');
 await holdSnail(); await expect('PART1_REGISTER');
@@ -157,6 +167,7 @@ for (let k = 0; k < 3; k++) {
   await waitPhase('answer');
   if (k === 0) {
     await sleep(300); await shot('07-ear-hint');
+    await sweep(0, -200); await sweep(120, -120); must(await ev('GlobalState.part2.roll') === 0, '⑦ 위아래·대각선으로 쓸면 안 움직임');
     await hdrag(60); console.log('  ear small roll → phase', await ev('GlobalState.part2.phase'), '(answer여야 함)');
     await tapLump(); console.log('  lump replay → phase', await ev('GlobalState.part2.phase'), 'left', await ev('GlobalState.part2.replayLeft'));
     await waitPhase('answer');
@@ -183,15 +194,28 @@ await waitUntil("GlobalState.currentStage === 'RESULT'", 8000); await expect('RE
 console.log('  result voice', await ev('voiceNow'));
 console.log('  psycho', JSON.stringify(await ev('GlobalState.psychoProfile')));
 
-// 결과: 빈 곳을 누르고 있으면 원래 소리, 떼면 내 소리. 달팽이를 오른쪽으로 밀면 보내기
+// 결과: 3곡 선택 버튼, 원래 소리 ↔ 내 귀 EQ 슬라이더, 빈 곳 누르고 있기, 달팽이를 오른쪽으로 밀어 보내기
+await ev('window.sentEars = 0; { const real = svartCloud.sendEar; svartCloud.sendEar = (r) => { sentEars++; return real(r); }; }');
 await sleep(2500); await shot('10-result-subtitle'); await sleep(3000); await shot('10-result');
-console.log('  code', await ev('getFullEarCode(GlobalState.userEQProfile, GlobalState.psychoProfile)'), 'place', await ev('tourPlace().key'));
-await hold(80, 300, 1400, async () => { console.log('  holding empty → bypass', await ev('GlobalState.part1.isBypassed')); await shot('11-result-original'); });
-console.log('  released → bypass', await ev('GlobalState.part1.isBypassed'));
+console.log('  code', await ev('getFullEarCode(GlobalState.userEQProfile, GlobalState.psychoProfile)'), 'place', await ev('tourPlace().key'), 'registerPlayOrder', JSON.stringify(await ev('GlobalState.part1.register.playOrder')));
+{ const rt = await T();
+  await tap(rt.tracks[1].x, rt.tracks[1].y);
+  console.log('  track 2 tapped → place', await ev('tourPlace().key'));
+  await shot('10b-result-track2');
+  await ev('GlobalState.tour.placeAt -= 16000'); await sleep(300);
+  must(await ev('tourPlace().key') === 'train-go', '고른 곡은 15초가 지나도 안 넘어감');
+  await tap(rt.eqSlider.x0, rt.eqSlider.y);
+  console.log('  eq slider left → eqMix', (await ev('GlobalState.part1.eqMix')).toFixed(2), 'bypass', await ev('GlobalState.part1.isBypassed'));
+  await shot('11-result-original');
+  await tap(rt.eqSlider.x1, rt.eqSlider.y);
+  console.log('  eq slider right → eqMix', (await ev('GlobalState.part1.eqMix')).toFixed(2), 'bypass', await ev('GlobalState.part1.isBypassed'));
+}
+must(await ev('sentEars') === 0, '밀기 전에는 청감타워로 안 보냄');
 const sn = (await T()).snail;
 await mouse('mousePressed', sn.x, sn.y);
 for (let k = 1; k <= 12; k++) { await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: sn.x + W * 0.3 * k / 12, y: sn.y, button: 'left', buttons: 1 }); await sleep(20); }
 await mouse('mouseReleased', sn.x + W * 0.3, sn.y); console.log('  pushed → sending', await ev('GlobalState.tour.sendAt !== null'), 'bypass', await ev('GlobalState.part1.isBypassed'));
+must(await ev('sentEars') === 1, '밀면 한 번 보냄');
 await sleep(1600); await shot('13-sending');
 await sleep(3500); await shot('14-sent');
 await sleep(5000); await expect('INIT');
