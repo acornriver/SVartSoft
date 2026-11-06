@@ -1,3 +1,7 @@
 render/
 media/img/
 ref/
+
+# 테스트 Node 모듈 (앱과 분리)
+tests/cloud/node_modules/
+tests/cloud/package-lock.json

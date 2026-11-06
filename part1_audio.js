@@ -5,7 +5,7 @@
  * ① 편한 볼륨    : 전체 비트를 들으며 위아래로 쓸어 크기 맞추기       → masterVolume (반죽 크기)
  * ② 저음 맞추기  : 킥·베이스가 큰 비트로 low shelf 맞추기           → lowShelf (꼬리)
  * ③ 고음 맞추기  : 하이햇·쉐이커가 큰 비트로 high shelf 맞추기       → highShelf (머리)
- * ④ 음역 고르기  : 같은 멜로디 저/중/고 중 하나 고르기 (듣는 순서 무작위) → registerPeak (껍질 자리)
+ * ④ 음역 고르기  : 같은 멜로디 저/중/고 중 하나 고르기 (듣는 순서 B-A-C 고정) → registerPeak (껍질 자리)
  * → Part 2 검사 네 단계 (part2_audio.js: 고역 예민도 · 중앙 · 우세 귀 · 바탕음/배음)
  * 결과          : 개인 EQ를 입힌 북서울 주변 녹음을 장소마다 차례로 (tour.js) ↔ 원래 소리 비교
  *
@@ -292,6 +292,7 @@ function goToStep(index) {
     beginPart2Stage(stage);
   } else if (stage === 'RESULT') {
     gs.part1.isBypassed = false;
+    gs.part1.eqMix = 1;
     startTour(); // 북서울 산책. 장소를 바꿀 때마다 음량 보정도 그 녹음 기준으로
     saveEarResult();
     say(['9-1']);
@@ -322,6 +323,11 @@ function saveEarResult() {
   } catch (e) {
     // 저장소를 못 쓰는 브라우저: 화면 결과만
   }
+
+  // 청감 클라우드로 전송 (뒤에서 — 화면 흐름을 막지 않음)
+  if (window.svartCloud) {
+    window.svartCloud.sendEar(out);
+  }
 }
 
 /**
@@ -336,6 +342,7 @@ function restartFlow() {
   profile.registerPeak.gain = 0;
   resetPsychoProfile();
   gs.part1.isBypassed = false;
+  gs.part1.eqMix = 1;
   gs.part1.stepIndex = 0;
   gs.userName = '';
 
@@ -480,16 +487,19 @@ function tapConfirmAdjust() {
  * 5. EQ 적용 + 체감 음량 보정
  */
 function applyEQ() {
+  const p1 = window.GlobalState.part1;
   const profile = window.GlobalState.userEQProfile;
-  const bypass = window.GlobalState.part1.isBypassed;
+  const mix = window.GlobalState.currentStage === 'RESULT'
+    ? (typeof p1.eqMix === 'number' ? p1.eqMix : (p1.isBypassed ? 0 : 1))
+    : (p1.isBypassed ? 0 : 1);
 
-  lowShelfFilter.gain(bypass ? 0 : profile.lowShelf.gain);
+  lowShelfFilter.gain(profile.lowShelf.gain * mix);
   peakFilter.freq(profile.registerPeak.freq);
-  peakFilter.gain(bypass ? 0 : profile.registerPeak.gain);
-  highShelfFilter.gain(bypass ? 0 : profile.highShelf.gain);
+  peakFilter.gain(profile.registerPeak.gain * mix);
+  highShelfFilter.gain(profile.highShelf.gain * mix);
 
   const spectrum = sourceSpectrum(activeSourceKey);
-  const compDb = bypass ? 0 : getLoudnessCompDb(spectrum);
+  const compDb = mix <= 0 ? 0 : getLoudnessCompDb(spectrum, mix);
   loudnessComp.amp(dbToGain(compDb), 0.08);
 }
 
@@ -497,7 +507,7 @@ function applyEQ() {
  * EQ가 바꾼 체감 음량을 되돌리는 보정값(dB).
  * 소스 스펙트럼 × A-가중치로 EQ 전후 파워를 비교한다.
  */
-function getLoudnessCompDb(spectrum) {
+function getLoudnessCompDb(spectrum, mix = 1) {
   const profile = window.GlobalState.userEQProfile;
   let before = 0;
   let after = 0;
@@ -507,7 +517,7 @@ function getLoudnessCompDb(spectrum) {
     // 로그 간격 한 칸에 들어있는 파워: 잰 값, 아니면 white ∝ f, pink 일정, brown ∝ 1/f
     const s = Array.isArray(spectrum) ? spectrum[i] : spectrum === 'white' ? f : spectrum === 'brown' ? 1 / f : 1;
     const w = s * Math.pow(aWeighting(f), 2);
-    const eqDb = getEQResponseDb(f, profile);
+    const eqDb = getEQResponseDb(f, profile, mix);
     before += w;
     after += w * Math.pow(10, eqDb / 10);
   }
@@ -518,11 +528,11 @@ function getLoudnessCompDb(spectrum) {
  * 개인 EQ의 주파수 f에서 이득(dB). Web Audio BiquadFilter와 같은 공식(RBJ Cookbook).
  * 비주얼에서 곡선을 그릴 때도 사용.
  */
-function getEQResponseDb(f, profile) {
+function getEQResponseDb(f, profile, mix = 1) {
   const fs = getAudioContext().sampleRate;
-  return biquadResponseDb('lowshelf', profile.lowShelf.freq, profile.lowShelf.gain, 1, f, fs) +
-    biquadResponseDb('peaking', profile.registerPeak.freq, profile.registerPeak.gain, profile.registerPeak.q, f, fs) +
-    biquadResponseDb('highshelf', profile.highShelf.freq, profile.highShelf.gain, 1, f, fs);
+  return biquadResponseDb('lowshelf', profile.lowShelf.freq, profile.lowShelf.gain * mix, 1, f, fs) +
+    biquadResponseDb('peaking', profile.registerPeak.freq, profile.registerPeak.gain * mix, profile.registerPeak.q, f, fs) +
+    biquadResponseDb('highshelf', profile.highShelf.freq, profile.highShelf.gain * mix, 1, f, fs);
 }
 
 function biquadResponseDb(type, f0, gainDb, q, f, fs) {
@@ -577,18 +587,23 @@ function aWeighting(f) {
 }
 
 /**
- * 결과 단계: 내 EQ ↔ 원래 소리 비교
+ * 결과 단계: 내 EQ ↔ 원래 소리 슬라이더(0 = 원래 소리, 1 = 내 EQ) 및 비교
  */
 function toggleResultBypass() {
   setResultBypass(!window.GlobalState.part1.isBypassed);
 }
 
-// 결과 화면: 화면을 누르고 있는 동안만 원래 소리 (main.js)
-function setResultBypass(on) {
+function setResultEqMix(mix) {
   const p1 = window.GlobalState.part1;
-  if (p1.isBypassed === on) return;
-  p1.isBypassed = on;
+  const m = constrain(mix, 0, 1);
+  if (p1.eqMix === m) return;
+  p1.eqMix = m;
+  p1.isBypassed = m < 0.5;
   applyEQ();
+}
+
+function setResultBypass(on) {
+  setResultEqMix(on ? 0 : 1);
 }
 
 /**
@@ -596,9 +611,9 @@ function setResultBypass(on) {
  */
 function startRegisterTrial() {
   const reg = window.GlobalState.part1.register;
-  // 카드는 x축(음고) 위 제자리에 고정하고, 처음 들려주는 순서만 무작위
+  // 카드는 x축(음고) 위 제자리에 고정하고, 처음 들려주는 순서는 B - A - C 고정 (사용자 지시 11/06)
   reg.order = REGISTERS.map((r) => r.id);
-  reg.playOrder = shuffle([0, 1, 2]);
+  reg.playOrder = [1, 0, 2];
   reg.selectedCard = -1;
   reg.playingCard = -1;
   reg.isAutoPlaying = true;

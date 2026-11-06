@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>청감 타워 피드 확인</title>
+  <style>
+    body { background: #111; color: #eee; font-family: monospace; padding: 16px; }
+    h1 { font-size: 14px; color: #aaa; margin: 0 0 8px; }
+    #status { font-size: 11px; color: #0f0; margin-bottom: 12px; }
+    #log { font-size: 11px; line-height: 1.6; white-space: pre-wrap; }
+    .arrive { color: #0f0; }
+    .remove { color: #f80; }
+    .initial { color: #aaa; }
+    .count { color: #08f; }
+  </style>
+</head>
+<body>
+  <h1>청감 타워 피드 — 확인용 (?mock=1 or ?emulator=1)</h1>
+  <div id="status">초기화 중…</div>
+  <div id="log"></div>
+
+  <!-- 에뮬레이터에서도 동작하려면 config에 projectId가 있어야 함 -->
+  <script>
+    window.CloudConfig = {
+      FIREBASE_CONFIG: {
+        apiKey: 'test', authDomain: 'test', projectId: 'svart-test',
+        storageBucket: '', messagingSenderId: '', appId: 'test'
+      },
+      CLOUD_ENABLED: true,
+      APP_VERSION: '1.0.0',
+      APP_CHECK_SITE_KEY: '',
+      STORE_NAMES: false, SHOW_NAMES: false, NAME_MAX_LEN: 12,
+      BANNED_WORDS: [], MOBILE_URL: '',
+      FEED_LIMIT: 500,
+      FEED_CACHE_TIMEOUT_MS: 120000,
+      FEED_COUNT_INTERVAL_MS: 300000,
+      FEED_OLD_THRESHOLD_MS: 60000
+    };
+  </script>
+  <script src="../../cloud/firebase.js"></script>
+  <script src="../../cloud/feed.js"></script>
+  <script>
+    const statusEl = document.getElementById('status');
+    const logEl = document.getElementById('log');
+    let count = 0;
+
+    function log(cls, msg) {
+      const line = document.createElement('div');
+      line.className = cls;
+      line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      logEl.prepend(line);
+    }
+
+    startFeed({
+      onInitial(list) {
+        statusEl.textContent = `초기 목록 ${list.length}개 로드됨`;
+        log('initial', `초기 ${list.length}개:`);
+        list.slice(0, 5).forEach(e => {
+          log('initial', `  ${e.earId} | ${e.code} | lang:${e.lang}`);
+        });
+        if (list.length > 5) log('initial', `  ... (${list.length - 5}개 더)`);
+      },
+      onArrive(ear, { animate }) {
+        log('arrive', `🐌 도착 (animate:${animate}) ${ear.earId} | ${ear.code}${ear._mock ? ' [mock]' : ''}`);
+      },
+      onRemove(earId) {
+        log('remove', `🗑 제거 ${earId}`);
+      },
+      onCount(total) {
+        count = total;
+        statusEl.textContent = `전체 ${total}마리`;
+        log('count', `전체 ${total}마리`);
+      }
+    });
+  </script>
+</body>
+</html>

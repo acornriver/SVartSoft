@@ -1,0 +1,14 @@
+{
+  "name": "svart-cloud-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:rules": "node --experimental-vm-modules node_modules/.bin/jest rules.test.mjs",
+    "test": "node rules.test.mjs"
+  },
+  "dependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
+    "firebase": "^11.0.2",
+    "firebase-admin": "^13.0.0"
+  }
+}
