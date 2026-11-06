@@ -5,11 +5,11 @@
  * → 결과(북서울 산책, 청감타워로 보내기)
  * - preload(), setup(), draw(), windowResized() 생명주기 관리
  * - 버튼 없이 손짓으로 조작. 손가락 하나를 짧게 누르기(톡) / 끌기 / 꾹 누르기로 나눔
- *     Part 1 ①②③ : 위아래로 끌기 = 조절,      달팽이 꾹 = 확정
- *     ④ 음역       : 등 위 자리 톡 = 고르기,     더듬이 톡 = 다시 듣기, 달팽이 꾹 = 확정
- *     ⑤ 고역 예민도 : 안 들리게 되는 순간 화면 아무 데나 톡 (손가락이 닿는 순간 바로). 다 들은 뒤 더듬이 톡 = 한 번 더, 달팽이 꾹 = 다음
- *     ⑥ 중앙        : 좌우로 끌기 = 비트를 머리 둘레로 돌리기, 달팽이 꾹 = 여기가 가운데
- *     ⑦⑧           : 좌우로 끌어 달팽이를 기어가게 하고 손을 떼면 바로 답(왼쪽/오른쪽), 더듬이 톡 = 한 번 더 듣기
+ *     Part 1 ①②③ : 위아래로 끌기 = 조절,      덩어리 꾹 = 확정
+ *     ④ 음역       : 위쪽 A/B/C 자리 톡 = 고르기, 덩어리 톡 = 다시 듣기, 덩어리 꾹 = 확정
+ *     ⑤ 고역 예민도 : 안 들리게 되는 순간 화면 아무 데나 톡 (손가락이 닿는 순간 바로). 다 들은 뒤 덩어리 톡 = 한 번 더, 덩어리 꾹 = 다음
+ *     ⑥ 중앙        : 좌우로 끌기 = 비트를 머리 둘레로 돌리기, 덩어리 꾹 = 여기가 가운데
+ *     ⑦⑧           : 좌우로 끌어 덩어리를 움직이고 손을 떼면 바로 답(왼쪽/오른쪽), 덩어리 톡 = 한 번 더 듣기
  *     결과          : 빈 곳을 누르고 있는 동안 = 원래 소리, 달팽이를 오른쪽으로 밀기 = 청감타워로 보내기
  *     검사 화면 오른쪽 위 슬라이더 : 음성 안내 크기. 잠겨 있어도 움직이고 검사 입력으로 치지 않음
  *     어느 단계든 IDLE_RESET_SECONDS 동안 아무도 안 만지면 첫 화면으로
@@ -18,6 +18,7 @@
  */
 
 const HOLD_MS = 900;            // 꾹 누르기로 확정되기까지
+const REPLAY_TAP_MS = 500;      // 이보다 오래 누르면 다시 듣기가 아님 (확정이 안 될 때 꾹 눌렀다 뗀 손가락이 다시 듣기가 되지 않게. Claude가 정함)
 const TAP_MOVE_PX = 10;         // 이보다 많이 움직이면 톡·꾹이 아니라 끌기
 const SEND_PUSH_RATIO = 0.18;   // 결과: 달팽이를 화면 너비의 이만큼 오른쪽으로 밀면 보내기
 const IDLE_RESET_SECONDS = 120; // 관람객이 자리를 떠나면 첫 화면으로
@@ -206,22 +207,24 @@ function pointerUp() {
 
   if (stage === 'RESULT') setResultBypass(false);
   if (p.mode === 'drag' && stage.startsWith('PART2_')) releaseRoll();
-  if (p.mode === 'pending') tapAt(p.x0, p.y0);
+  if (p.mode === 'pending') tapAt(p.x0, p.y0, millis() - p.t0);
 }
 
 /**
- * 짧게 누르기(톡): 더듬이 = 다시 듣기, ④ 등 위 자리 = 고르기
+ * 짧게 누르기(톡): 덩어리 = 다시 듣기, ④ 덩어리 위 A/B/C 자리 = 고르기
  */
-function tapAt(px, py) {
+function tapAt(px, py, pressedMs) {
   const stage = window.GlobalState.currentStage;
-  if (hitAntenna(px, py) && canReplay()) {
-    if (stage === 'PART1_REGISTER') replayAllRegisterCards();
-    else replayPart2();
-    return;
-  }
   if (stage === 'PART1_REGISTER') {
     const spot = registerSpotAt(px, py);
-    if (spot >= 0) tapRegisterCard(spot);
+    if (spot >= 0) {
+      tapRegisterCard(spot);
+      return;
+    }
+  }
+  if (pressedMs < REPLAY_TAP_MS && hitSnail(px, py) && canReplay()) {
+    if (stage === 'PART1_REGISTER') replayAllRegisterCards();
+    else replayPart2();
   }
 }
 

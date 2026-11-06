@@ -4,17 +4,18 @@
  * 모든 귀는 [ ] 이다 — 소리로 그린 달팽이
  * 검정 바탕, 흰 선 하나. 달팽이의 윤곽은 지금 들리는 소리의 파형(오실로스코프)이고, 껍질은 그 파형을 나선으로 만 것.
  * 비트를 타며 킥에 눌리고 흰 섬광이 번진다. 포인트 색은 신호 빨강 하나.
- * - 가로축 = 음고: 왼쪽 꼬리 = 낮은 소리, 오른쪽 머리 = 높은 소리. 더듬이는 늘 오른쪽이라 달팽이는 오른쪽을 본다.
+ * 검사 내내 이름 없는 덩어리를 주무르고, 결과 화면에서 비로소 달팽이로 바뀐다 (사용자 지시). cur.form 0 = 덩어리, 1 = 달팽이.
+ * - 가로축 = 음고: 왼쪽 = 낮은 소리, 오른쪽 = 높은 소리. 달팽이는 늘 오른쪽을 보고 뒤집히지 않는다.
  *   ① 크기  → 덩어리가 부풀거나 줄어듦
- *   ② 저음  → 꼬리를 빚음 (위로 쓸면 통통하게, 아래로 쓸면 눌려서 작게)
- *   ③ 고음  → 머리를 빚음 (위로 쓸면 크고 높이, 아래로 쓸면 눌려서 작게)
- *   ④ 음역  → 껍질을 얹을 자리 (저음역 왼쪽 / 중음역 가운데 / 고음역 오른쪽)
- *   Part 2  → ⑦⑧은 달팽이가 몸을 돌려 좌우로 기어가 답함 (사용자 지시 11/03). ⑥은 돌리는 동안 선 색이 실시간으로 바뀜
- *             ⑦은 고르는 쪽 더듬이가 과장되게 늘어나 꿈틀대고, ⑧은 고르는 뜻대로 점액(네모/동그라미)을 흘리며 오감
- * - 결과: 다 빚은 달팽이가 북서울 주변을 걷는다 (뒤에 그 장소 영상을 고대비 흑백으로). 보내면 오른쪽으로 기어 나감
+ *   ② 저음  → 왼쪽 아래가 부풀거나 눌림 (달팽이가 되면 꼬리)
+ *   ③ 고음  → 오른쪽 위가 부풀거나 눌림 (달팽이가 되면 머리)
+ *   ④ 음역  → 뾰루지처럼 튀어나올 자리 (저음역 왼쪽 / 중음역 가운데 / 고음역 오른쪽). 달팽이가 되면 껍질
+ *   Part 2  → ⑤ 선 꼬임, ⑥ 선 색(돌리는 동안 실시간). ⑦⑧은 덩어리가 좌우로 움직여 답함
+ *             ⑧ 결과는 껍질 모양(네모/동그라미)인데 결과 화면에서만 보임. ⑦ 우세 귀의 표시는 미정이라 몸에 나타나지 않음
+ * - 결과: 달팽이가 된 뒤 북서울 주변을 걷는다 (뒤에 그 장소 영상을 고대비 흑백으로). 더듬이도 이때 나옴. 보내면 오른쪽으로 기어 나감
  * 조절 중에는 dB 값이나 눈금 숫자를 크게 보여주지 않는다. 값은 우상단에 작은 디버그 숫자로만 표시.
  * 섬광은 눈에 부담이 없도록 아주 옅게만 쓴다 (깜빡이는 스트로브 아님).
- * 첫 화면의 확성기·언어 말고는 버튼이 없다. 확정은 달팽이를 꾹 누르기, 다시 듣기는 더듬이 톡, 음역은 등 위 자리를 톡,
+ * 첫 화면의 확성기·언어 말고는 버튼이 없다. 확정은 덩어리를 꾹 누르기, 다시 듣기는 덩어리 톡, 음역은 위쪽 A/B/C 자리를 톡,
  * 결과에서는 누르고 있는 동안 원래 소리, 달팽이를 오른쪽으로 밀면 청감타워로 (입력은 main.js)
  * 문구는 모두 copy.js의 t()로 가져온다 (한국어 / English). 음성 안내가 나오는 동안은 그 자막을 위에, 조용할 때는 지금 할 일을 아래에 보여 준다.
  */
@@ -36,11 +37,7 @@ const SNAIL_COLOR_DEG = 30; // 이만큼 치우치면 팔레트 끝 색 (Claude�
 
 // ⑤ 고역 한계 → 달팽이 꼬임 (media/img/달팽이 꼬임 정도 고역한계.png, 사용자 지시 11/02)
 // ⑤부터 선이 이중나선으로 갈라지고, 높이 들을수록 더 촘촘하게 꼬임. 꼬임 수는 Claude가 정함
-// ⑧ 바탕음·배음 → 점액 모양 (사용자 지시 11/02): 바탕음 귀 F = 네모, 배음 귀 H = 동그라미, 두 귀 B = 섞임
-const SLIME = { perSec: 14, lifeMs: 3200, speed: [18, 46], size: [2, 5] };
-// ⑦ 고르는 동안 그쪽 더듬이: 최대 길이 배율, 반대쪽 배율, 꿈틀대는 크기 (Claude가 정함)
-const EAR_LIVE = { long: 2.6, short: 0.6, wiggle: 0.22 };
-const CRAWL_SCALE = 0.6;  // ⑦⑧ 기어가는 동안 몸 크기 배율 (Claude가 정함)
+const CRAWL_SCALE = 0.6;  // ⑦⑧ 움직이는 동안 몸 크기 배율 (Claude가 정함)
 const HELIX = { bodyTwists: [3, 22], shellTwists: [4, 30], sep: 0.075, rungEvery: 3, spinSpeed: 1.4 };
 
 const FONT = {
@@ -52,7 +49,10 @@ const SIZE_MIN = 0.72;      // ① 가장 작게 골랐을 때 덩어리 크기 
 const SIZE_MAX = 1.28;      // ① 가장 크게 골랐을 때
 const NAME_FADE_MS = 1900;  // 이름을 넣고 첫 검사로 넘어가기까지
 const VOICE_SLIDER = { width: 120, hit: 26 }; // 음성 크기 슬라이더: 길이, 손끝 판정 여유 (Claude가 정함)
-const RESULT_TEXT_DELAY = 1200;
+const RESULT_TEXT_DELAY = 4000; // 달팽이로 바뀌는 장면을 먼저 보여 주고 글자를 띄움
+const FORM_REVEAL = 0.022;  // 결과 화면에서 덩어리가 달팽이로 바뀌는 속도 (프레임당, 2초쯤. Claude가 정함)
+const SHELL_POP = { spring: 0.2, damp: 0.7 }; // ④ 혹이 튀어나오는 탄성 (Claude가 정함)
+const PITCH_SHELL = { F: 1, B: 0.5, H: 0 };   // ⑧ 껍질 모양: 바탕음 = 네모, 섞임 = 둥근 네모(Claude가 정함), 배음 = 동그라미
 const BACKDROP_WASH = 110;  // 결과 화면 영상 위에 덮는 검정 (0~255). 글자 자리는 따로 더 어둡게
 const OUTLINE_POINTS = 160;
 const WAVE_GAIN = 0.8;      // 파형이 윤곽을 흔드는 크기 (반지름 배율, ①에서 고른 볼륨과 상관없이 같은 크기로)
@@ -75,13 +75,10 @@ let lastStage = null;
 let intro = {};
 let wave = null;            // 이번 프레임의 파형 (-1 ~ 1)
 let lastShape = null;       // 이번 프레임에 그린 달팽이 (터치 판정용)
-let antennaTips = [];
 let shellAt = null;         // { x, y, r }
 let pulse = { kick: 0, snare: 0, hat: 0 };
 let snailInk = COLORS.ink.slice(); // 지금 달팽이 선 색 (정해진 색을 천천히 따라감)
 let snailGlow = COLORS.accent.slice(); // 선 밑의 잔광. ⑥ 전에는 빨강, 색이 정해지면 그 색 (빨강이 깔리면 파란 선이 보라로 보임, 차민휘 전달사항 11/06)
-let slime = [];             // 점액 파티클 { x, y, vx, vy, born, life, size, sq }
-let slimeAcc = 0;
 
 /**
  * 메인 렌더 함수 (main.js의 draw()에서 호출)
@@ -364,35 +361,32 @@ function hitSnail(px, py) {
   return !!shellAt && cur.shellOn > 0.5 && Math.hypot(px - shellAt.x, py - shellAt.y) < shellAt.r + pad;
 }
 
-function hitAntenna(px, py) {
-  const r = Math.max(30, cur.R0 * 0.35);
-  return antennaTips.some((p) => Math.hypot(px - p.x, py - p.y) < r);
-}
-
-// ④ 등 위 세 자리 중 어디를 눌렀는지 (0 저음역 / 1 중음역 / 2 고음역). 달팽이 근처 높이만
+// ④ 세 자리 중 어디를 눌렀는지 (0 저음역 / 1 중음역 / 2 고음역). 덩어리 자체를 누른 것은 다시 듣기라 뺌
 function registerSpotAt(px, py) {
-  if (!lastShape || py < cur.groundY - cur.R0 * 4 || py > cur.groundY + 40) return -1;
+  if (!lastShape || py < cur.groundY - cur.R0 * 4 || py > cur.groundY + 40 || hitSnail(px, py)) return -1;
   const xs = REGISTERS.map((r) => lastShape.cx + SHELL_SPOT[r.id] * cur.R0);
   if (px < (xs[0] + xs[1]) / 2) return 0;
   if (px < (xs[1] + xs[2]) / 2) return 1;
   return 2;
 }
 
-// 테스트와 안내용: 달팽이 가운데, 더듬이 끝, 등 위 세 자리의 화면 좌표
+// 테스트와 안내용: 덩어리 가운데, 세 자리의 화면 좌표
 function getTouchTargets() {
   if (!lastShape) return null;
   return {
     snail: { x: lastShape.cx, y: lastShape.cy },
-    antenna: antennaTips[1] || antennaTips[0],
-    spots: REGISTERS.map((r) => ({ x: lastShape.cx + SHELL_SPOT[r.id] * cur.R0, y: lastShape.cy - cur.R0 * 0.6 }))
+    spots: REGISTERS.map((r) => ({ x: lastShape.cx + SHELL_SPOT[r.id] * cur.R0, y: cur.groundY - cur.R0 * 3.1 }))
   };
 }
 
-// 지금 더듬이를 누르면 다시 들려줄 수 있는지
+// 지금 덩어리를 톡 하면 다시 들려줄 수 있는지
 function canReplay() {
   const stage = window.GlobalState.currentStage;
   if (inputLocked()) return false;
-  if (stage === 'PART1_REGISTER') return !window.GlobalState.part1.register.isAutoPlaying;
+  if (stage === 'PART1_REGISTER') {
+    const reg = window.GlobalState.part1.register;
+    return !reg.isAutoPlaying && reg.playingCard < 0; // 고른 멜로디가 울리는 동안은 안 됨 (끊기면 4-5 안내가 안 나옴)
+  }
   return canReplayPart2();
 }
 
@@ -417,7 +411,7 @@ function viewValues() {
 }
 
 /**
- * 껍질: 보이는 정도, 자리(px, 가운데 기준), 들어 올린 높이
+ * 껍질: 튀어나온 정도, 자리(px, 가운데 기준), 자리 이름(바뀌면 새로 튀어나옴)
  */
 function shellTarget(L, R0) {
   const gs = window.GlobalState;
@@ -428,14 +422,14 @@ function shellTarget(L, R0) {
   if (stage === 'PART1_REGISTER') {
     const reg = gs.part1.register;
     const card = reg.playingCard >= 0 ? reg.playingCard : reg.selectedCard;
-    if (card < 0) return { on: 0, x: 0, lift: 1 };
-    // 울리는 동안은 그 자리 위에 떠 있고, 고른 뒤에는 내려앉음
+    if (card < 0) return { on: 0, x: 0, key: null };
+    // 울리는 동안은 작게 튀어나오고, 고르면 다 튀어나옴 (사용자 지시: 얹지 않고 뾰루지처럼)
     const settled = reg.playingCard < 0 && reg.selectedCard === card;
-    return { on: settled ? 1 : 0.5, x: spot(reg.order[card]), lift: settled ? 0 : 1 };
+    return { on: settled ? 1 : 0.6, x: spot(reg.order[card]), key: reg.order[card] };
   }
-  if (stage.startsWith('PART2_')) return { on: 1, x: chosen ? spot(chosen) : 0, lift: 0 }; // 등 위 제자리 (⑥은 돌기만 하고, ⑦⑧은 달팽이째 움직임)
-  if (stage === 'RESULT' && chosen) return { on: 1, x: spot(chosen), lift: 0 };
-  return { on: 0, x: 0, lift: 1 };
+  if (stage.startsWith('PART2_')) return { on: 1, x: chosen ? spot(chosen) : 0, key: chosen || 'MID' }; // 제자리 (⑥은 돌기만 하고, ⑦⑧은 덩어리째 움직임)
+  if (stage === 'RESULT' && chosen) return { on: 1, x: spot(chosen), key: chosen };
+  return { on: 0, x: 0, key: null };
 }
 
 function targetParams(L) {
@@ -450,24 +444,26 @@ function targetParams(L) {
   const R0 = L.R0 * size * (crawlStage ? CRAWL_SCALE : 1);
   const sh = shellTarget(L, R0);
   const tw = isIntroStage(stage) ? null : part2Twist();
-  const pressing = millis() - gs.part1.lastDragAt < 180 && (stage === 'PART1_LOW' || stage === 'PART1_HIGH');
+  const pressing = millis() - gs.part1.lastDragAt < 180 && !!PART1_ADJUST[stage];
   return {
     cx: L.cx + (crawlStage ? (gs.part2.roll / PART2_SNAP) * crawlTravel(L, R0) : 0), groundY: L.groundY, R0,
     tailF: v.low === null ? 0 : 1,
     tailG: v.low === null ? 0 : v.low / 10,
     headF: v.high === null ? 0 : 1,
     headG: v.high === null ? 0 : v.high / 10,
-    wobble: at < FLOW_STAGES.indexOf('PART1_LOW') ? 1 : 0.3, // 빚기 전에는 말랑하게 일렁임
+    wobble: stage === 'RESULT' ? 0.3 : pressing ? 1.3 : at < FLOW_STAGES.indexOf('PART1_LOW') ? 1 : 0.7, // 달팽이가 되기 전까지 일렁이고, 쓸면 더 출렁임
+    form: stage === 'RESULT' ? 1 : 0,                        // 0 덩어리, 1 달팽이. 끝까지 덩어리로 있다가 결과에서 바뀜 (사용자 지시)
     crawl: stage === 'RESULT' ? 1 : 0,                       // 결과 화면: 제자리에서 천천히 기어감
     press: pressing ? 1 : 0,
-    pressAngle: stage === 'PART1_HIGH' ? HEAD_ANGLE : TAIL_ANGLE,
-    shellOn: sh.on, shellX: sh.x, shellLift: sh.lift,
+    pressAngle: stage === 'PART1_VOLUME' ? -HALF_PI : stage === 'PART1_HIGH' ? HEAD_ANGLE : TAIL_ANGLE,
+    shellOn: sh.on, shellX: sh.x, shellKey: sh.key,
+    shellSquare: stage === 'RESULT' ? PITCH_SHELL[gs.psychoProfile.pitchMode] || 0 : 0, // 검사 중에는 답이 드러나지 않게 (사용자 지시)
     helix: tw === null ? 0 : 1, twist: tw === null ? 0 : tw,
     dim: stage === 'RESULT' && gs.part1.isBypassed ? 0.45 : 1
   };
 }
 
-// ⑦⑧ 가운데에서 한쪽 끝까지 기어가는 거리(px). 머리·더듬이(늘어난 것까지)가 화면 밖으로 나가지 않게
+// ⑦⑧ 가운데에서 한쪽 끝까지 움직이는 거리(px). 덩어리가 화면 밖으로 나가지 않게
 function crawlTravel(L, R0) {
   return Math.max(R0 * 0.8, Math.min(L.track, width / 2 - L.m - R0 * 3.3));
 }
@@ -477,14 +473,9 @@ function smoothAll(L) {
   const k = 0.1;
   const stage = window.GlobalState.currentStage;
   const crawlStage = stage === 'PART2_EAR' || stage === 'PART2_PITCH';
-  // 가는 쪽으로 몸을 돌림 (face 1 = 오른쪽, -1 = 왼쪽). 사이를 지나는 동안 몸이 좁아졌다 뒤집혀 도는 것처럼 보임
   const dx = tp.cx - cur.cx;
-  if (!crawlStage) cur.faceT = 1;
-  else if (Math.abs(dx) > cur.R0 * 0.04) cur.faceT = Math.sign(dx);
-  else if (cur.faceT === undefined) cur.faceT = 1;
-  cur.face = lerp(cur.face === undefined ? 1 : cur.face, cur.faceT, 0.14);
   cur.move = lerp(cur.move || 0, constrain(Math.abs(dx) / (cur.R0 * 0.6), 0, 1), 0.2); // 기어가는 중이면 꿈틀
-  ['groundY', 'R0', 'tailF', 'tailG', 'headF', 'headG', 'wobble', 'crawl', 'shellOn', 'shellLift', 'dim'].forEach((key) => {
+  ['groundY', 'R0', 'tailF', 'tailG', 'headF', 'headG', 'wobble', 'crawl', 'shellSquare', 'dim'].forEach((key) => {
     cur[key] = lerp(cur[key], tp[key], k);
   });
   cur.cx = lerp(cur.cx, tp.cx, crawlStage ? 0.12 : k);
@@ -493,6 +484,14 @@ function smoothAll(L) {
   cur.twist = lerp(cur.twist || 0, tp.twist, 0.2); // 소리가 높아지는 동안 바짝 따라옴
   cur.pressAngle = tp.pressAngle;
   cur.shellX = lerp(cur.shellX, tp.shellX, 0.12);
+  cur.form = lerp(cur.form, tp.form, tp.form > cur.form ? FORM_REVEAL : 0.2);
+  // 자리가 바뀌면 옮겨 가지 않고 새 자리에서 튀어나옴
+  if (tp.shellKey !== cur.shellKey) {
+    cur.shellKey = tp.shellKey;
+    if (tp.shellKey) { cur.shellOn = 0; cur.shellV = 0; cur.shellX = tp.shellX; }
+  }
+  cur.shellV = ((cur.shellV || 0) + (tp.shellOn - cur.shellOn) * SHELL_POP.spring) * SHELL_POP.damp;
+  cur.shellOn = Math.max(0, cur.shellOn + cur.shellV);
 }
 
 // 보내기: 오른쪽 화면 밖으로 기어 나가는 거리
@@ -504,26 +503,30 @@ function sendOffset() {
 }
 
 /**
- * 달팽이 외곽선: 원을 일렁이게 한 뒤 꼬리·머리 방향으로 가우스 모양 혹을 밀어 냄.
- * 꼬리·머리가 생길수록 몸은 낮고 길쭉해지고, 아랫면은 바닥에 눌려 평평해짐. 킥에 눌리고, 기어갈 때 늘었다 줄었다 함
+ * 외곽선: 원을 일렁이게 한 뒤 꼬리·머리 방향으로 가우스 모양 혹을 밀어 냄.
+ * cur.form 0이면 값만큼 넓게 부풀거나 눌린 덩어리이고(꼬리·머리로 안 보임), 1이면 달팽이.
+ * 달팽이에 가까울수록 몸은 낮고 길쭉해지고, 아랫면은 바닥에 눌려 평평해짐. 킥에 눌리고, 기어갈 때 늘었다 줄었다 함
  */
 function bodyShape() {
   const time = millis() / 1000;
   const R0 = cur.R0;
-  const F = (cur.tailF + cur.headF) / 2;
+  const form = cur.form;
+  const F = (cur.tailF + cur.headF) / 2 * form;
   const sending = sendProgress() >= 0;
   const crawl = (sending ? 1.6 : Math.max(cur.crawl, 1.4 * cur.move)) * Math.sin(time * (sending ? 7 : cur.move > 0.1 ? 6 : 1.8));
-  const face = cur.face === undefined ? 1 : cur.face;
   const hs = (1 + 0.16 * F) * (1 + 0.06 * pulse.kick) * (1 + 0.06 * crawl);
   const vs = (1 - 0.22 * F) * (1 - 0.1 * pulse.kick) * (1 - 0.05 * crawl);
   const flatY = R0 * 0.72 * vs;
   const cx = cur.cx + sendOffset();
   const cy = cur.groundY - flatY;
 
-  const tailSigma = 0.32 + 0.2 * cur.tailG;
-  const tailLen = cur.tailF * R0 * (1.0 + 0.45 * cur.tailG);
-  const headSigma = 0.4 + 0.14 * cur.headG;
-  const headLen = cur.headF * R0 * (0.75 + 0.35 * cur.headG);
+  const tailSigma = lerp(0.62, 0.32 + 0.2 * cur.tailG, form);
+  const tailLen = cur.tailF * R0 * lerp(0.18 + 0.42 * cur.tailG, 1.0 + 0.45 * cur.tailG, form);
+  const headSigma = lerp(0.62, 0.4 + 0.14 * cur.headG, form);
+  const headLen = cur.headF * R0 * lerp(0.16 + 0.4 * cur.headG, 0.75 + 0.35 * cur.headG, form);
+  // ④ 뾰루지: 살이 껍질 자리로 밀려 나옴. 달팽이가 되면 그 위에 껍질이 올라앉음
+  const pimpleLen = Math.min(cur.shellOn, 1.2) * R0 * 0.62 * (1 - form);
+  const pimpleAngle = -Math.acos(constrain(cur.shellX / R0, -0.95, 0.95));
 
   const pointAt = (th) => {
     const wob = cur.wobble * (0.045 * Math.sin(3 * th + 1.1 * time) + 0.03 * Math.sin(5 * th - 1.7 * time + 1) +
@@ -541,19 +544,23 @@ function bodyShape() {
     x += headLen * wh * 0.9;
     y -= headLen * wh * 0.45;
 
-    // 손가락으로 누른 자국
-    const dent = R0 * 0.2 * cur.press * Math.exp(-sq(angDiff(th, cur.pressAngle) / 0.45));
+    const wp = Math.exp(-sq(angDiff(th, pimpleAngle) / 0.36));
+    x += Math.cos(pimpleAngle) * pimpleLen * wp;
+    y += Math.sin(pimpleAngle) * pimpleLen * wp;
+
+    // 손가락으로 누른 자국 (덩어리일 때 더 깊게)
+    const dent = R0 * (0.42 - 0.22 * form) * cur.press * Math.exp(-sq(angDiff(th, cur.pressAngle) / 0.5));
     const len = Math.hypot(x, y) || 1;
     x -= x / len * dent;
     y -= y / len * dent;
 
     if (y > flatY) y = flatY + (y - flatY) * 0.2;
-    return { x: cx + face * x, y: cy + y }; // 왼쪽을 보면 좌우로 뒤집음
+    return { x: cx + x, y: cy + y };
   };
 
   const pts = [];
   for (let i = 0; i < OUTLINE_POINTS; i++) pts.push(pointAt((i / OUTLINE_POINTS) * TWO_PI));
-  return { pts, cx, cy, R0, face, headTip: pointAt(HEAD_ANGLE), pressPt: pointAt(cur.pressAngle) };
+  return { pts, cx, cy, R0, headTip: pointAt(HEAD_ANGLE), pressPt: pointAt(cur.pressAngle), pimpleTip: pointAt(pimpleAngle), pimpleAngle };
 }
 
 // 등 위(또는 바닥)의 높이: x 근처 외곽선 중 가장 위. 몸을 벗어나면 바닥
@@ -653,7 +660,7 @@ function drawSnail() {
   const ctx = drawingContext;
   ctx.save();
   ctx.globalAlpha = cur.dim;
-  drawSlime(ctx, shape);
+  drawReplayRing(ctx, shape);
   drawAntennae(ctx, shape);
   drawBody(ctx, shape);
   if (cur.press > 0.02) drawFingertip(ctx, shape);
@@ -682,164 +689,92 @@ function drawBody(ctx, shape) {
   helixStroke(ctx, traced, true, twistCount(HELIX.bodyTwists), shape.R0 * HELIX.sep);
 }
 
-/**
- * 점액: 꼬리 끝에서 바닥을 따라 뒤(왼쪽)로 흘러가며 옅어지는 작은 파티클. ⑧ 결과가 나온 뒤부터
- */
-// ⑧ 동안(사용자 지시 11/03): 기어가는 동안 고르려는 뜻대로 점액을 흘림 (바탕음 쪽 = 네모, 배음 쪽 = 동그라미).
-// 멈춰 있으면 지금까지 답한 비율로 조금씩. 바닥에 떨어진 채 남아 왔다 갔다 한 자국이 보임
-function drawSlime(ctx, shape) {
-  const mode = window.GlobalState.psychoProfile.pitchMode;
-  const pitch = part2PitchSlime();
-  const now = millis();
-  slime = slime.filter((p) => now - p.born < p.life);
-  let rate = 0, sqP = 0, trail = false;
-  if (pitch) {
-    const n = pitch.F + pitch.S;
-    if (pitch.live && cur.move > 0.05) { rate = SLIME.perSec * (1 + 3 * cur.move); sqP = pitch.live === 'F' ? 1 : 0; trail = true; }
-    else if (n) { rate = SLIME.perSec * 0.5; sqP = pitch.F / n; }
-  } else if (mode) {
-    rate = SLIME.perSec;
-    sqP = mode === 'F' ? 1 : mode === 'B' ? 0.5 : 0;
-  }
-  if (rate > 0) {
-    const face = shape.face >= 0 ? 1 : -1;
-    let tail = shape.pts[0];
-    shape.pts.forEach((p) => { if (face * p.x < face * tail.x) tail = p; });
-    slimeAcc += rate * Math.min(deltaTime, 100) / 1000;
-    while (slimeAcc >= 1) {
-      slimeAcc -= 1;
-      slime.push({
-        x: tail.x + face * random(-4, 10), y: cur.groundY - random(0, 5),
-        vx: -face * (trail ? random(2, 8) : random(...SLIME.speed)), vy: random(-3, 3),
-        born: now, life: SLIME.lifeMs * random(0.6, 1) * (trail ? 1.6 : 1), size: random(...SLIME.size) * (trail ? 1.8 : 1),
-        sq: Math.random() < sqP
-      });
-    }
-  } else {
-    slimeAcc = 0;
-  }
-  const dt = Math.min(deltaTime, 100) / 1000;
+// 다시 들을 수 있을 때: 덩어리 둘레에서 빨간 고리가 퍼짐 (라디오 신호처럼)
+function drawReplayRing(ctx, shape) {
+  if (!canReplay()) return;
+  const ph = (millis() / 1400) % 1;
   ctx.save();
-  slime.forEach((p) => {
-    p.x += p.vx * dt;
-    p.y += p.vy * dt;
-    p.vx *= 0.995;
-    const k = 1 - (now - p.born) / p.life;
-    ctx.fillStyle = rgba(snailInk, 0.8 * k);
-    const r = p.size * (0.6 + 0.4 * k);
-    if (p.sq) ctx.fillRect(p.x - r, p.y - r, r * 2, r * 2);
-    else { ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, TWO_PI); ctx.fill(); }
-  });
+  ctx.strokeStyle = rgba(COLORS.accent, 0.7 * (1 - ph));
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.arc(shape.cx, shape.cy, shape.R0 * (1.15 + 0.5 * ph), 0, TWO_PI);
+  ctx.stroke();
   ctx.restore();
 }
 
-// 더듬이 길이 배율 { L, R }. 우세 쪽은 최대 1.7배, 반대쪽은 최대 0.8배 (Claude가 정함)
-function earAntenna() {
-  const psy = window.GlobalState.psychoProfile;
-  if (!psy.dominantEar || typeof psy.earStrength !== 'number') return { L: 1, R: 1 };
-  const k = psy.earStrength / 100;
-  const long = 1 + 0.7 * k, short = 1 - 0.2 * k;
-  return psy.dominantEar === 'LEFT' ? { L: long, R: short } : { L: short, R: long };
-}
-
-// ⑦ 고르는 중의 더듬이 { L, R 길이 배율, wL, wR 꿈틀 크기 }. 달팽이가 가 있는 만큼(roll) 그쪽이 늘어남
-function earLiveAntenna() {
-  const gs = window.GlobalState;
-  const p2 = gs.part2;
-  const none = { L: 1, R: 1, wL: 0, wR: 0 };
-  if (gs.currentStage !== 'PART2_EAR' || (p2.phase !== 'answer' && p2.phase !== 'wait')) return none;
-  const r = constrain(p2.roll / PART2_SNAP, -1, 1), a = Math.abs(r);
-  const long = 1 + (EAR_LIVE.long - 1) * a, short = 1 - (1 - EAR_LIVE.short) * a, wig = EAR_LIVE.wiggle * a;
-  return r < 0 ? { L: long, R: short, wL: wig, wR: 0 } : { L: short, R: long, wL: 0, wR: wig };
-}
-
-// 더듬이 두 개: 머리 위에서 보는 쪽 위로 (오른쪽을 보면 오른쪽 위). 머리를 키울수록 길어지고, 하이햇에 까딱임
+// 더듬이 두 개: 머리 위에서 오른쪽 위로. 끝까지 없다가 달팽이가 되면서 자라 나옴 (사용자 지시). 머리를 키울수록 길어지고, 하이햇에 까딱임
 function drawAntennae(ctx, shape) {
+  const grow = constrain((cur.form - 0.5) / 0.5, 0, 1);
+  if (grow <= 0) return;
   const R0 = shape.R0;
   const tip = shape.headTip;
   const time = millis() / 1000;
-  const len = R0 * (0.6 + 0.25 * cur.headG * cur.headF);
+  const len = R0 * (0.6 + 0.25 * cur.headG * cur.headF) * grow;
   const flick = pulse.hat * 0.12;
-  // ⑦ 우세 귀 → 그쪽 더듬이가 길어짐 (사용자 지시 11/02). 화면 왼쪽 더듬이 = 왼쪽 귀, 오른쪽 더듬이 = 오른쪽 귀. 세기만큼
-  // ⑦ 고르는 동안(사용자 지시 11/03): 달팽이가 간 쪽 더듬이가 과장되게 쭉 늘어나 꿈틀대고, 반대쪽은 움츠러듦
-  const ear = earAntenna();
-  const live = earLiveAntenna();
-  cur.antL = lerp(cur.antL || 1, ear.L * live.L, 0.12);
-  cur.antR = lerp(cur.antR || 1, ear.R * live.R, 0.12);
-  cur.wigL = lerp(cur.wigL || 0, live.wL, 0.12);
-  cur.wigR = lerp(cur.wigR || 0, live.wR, 0.12);
-  // 왼쪽을 보면 뒤집혀서 뒤쪽 더듬이가 화면 오른쪽에 옴. 화면 왼쪽 더듬이 = 왼쪽 귀
-  const face = shape.face === undefined ? 1 : shape.face;
-  const back = face >= 0 ? 'L' : 'R', front = face >= 0 ? 'R' : 'L';
-  const stalks = [
-    { bx: -R0 * 0.24, by: R0 * 0.12, a: -1.25 - flick + Math.sin(time * 1.3) * 0.08, side: back, ph: 0 },
-    { bx: -R0 * 0.04, by: R0 * 0.14, a: -0.72 - flick + Math.sin(time * 1.3 + 1.2) * 0.08, side: front, ph: 1.7 }
-  ].map((st) => ({ ...st, k: st.side === 'L' ? cur.antL : cur.antR, wig: st.side === 'L' ? cur.wigL : cur.wigR }));
-  antennaTips = [];
-  const replay = canReplay();
-  stalks.forEach((s) => {
+  [
+    { bx: -R0 * 0.24, by: R0 * 0.12, a: -1.25 - flick + Math.sin(time * 1.3) * 0.08 },
+    { bx: -R0 * 0.04, by: R0 * 0.14, a: -0.72 - flick + Math.sin(time * 1.3 + 1.2) * 0.08 }
+  ].forEach((s) => {
     const pts = [];
     for (let k = 0; k <= 20; k++) {
       const q = k / 20;
       const bend = Math.sin(q * Math.PI) * 0.18;
-      const dx = Math.cos(s.a - bend) * len * s.k * q, dy = Math.sin(s.a - bend) * len * s.k * q;
-      // 꿈틀: 줄기를 따라 물결이 끝으로 흘러감 (줄기에 수직으로)
-      const w = s.wig * len * q * Math.sin(q * 2.6 * Math.PI - time * 9 + s.ph);
-      const nx = -Math.sin(s.a), ny = Math.cos(s.a);
-      pts.push({ x: tip.x + face * (s.bx + dx + nx * w), y: tip.y + s.by + dy + ny * w });
+      pts.push({ x: tip.x + s.bx + Math.cos(s.a - bend) * len * q, y: tip.y + s.by + Math.sin(s.a - bend) * len * q });
     }
     scopeStroke(ctx, pts, false, 0.9);
     const e = pts[pts.length - 1];
-    antennaTips.push(e);
     ctx.save();
-    // 다시 들을 수 있을 때: 더듬이 끝에서 빨간 고리가 퍼짐 (라디오 신호처럼)
-    if (replay) {
-      const ph = (millis() / 1400) % 1;
-      ctx.strokeStyle = rgba(COLORS.accent, 0.7 * (1 - ph));
-      ctx.lineWidth = 1.2;
-      ctx.beginPath();
-      ctx.arc(e.x, e.y, R0 * (0.12 + 0.35 * ph), 0, TWO_PI);
-      ctx.stroke();
-    }
     ctx.strokeStyle = rgba(snailInk, 1);
     ctx.lineWidth = 1.5;
     ctx.fillStyle = rgba(COLORS.bg, 1);
     ctx.beginPath();
-    ctx.arc(e.x, e.y, R0 * 0.09, 0, TWO_PI);
+    ctx.arc(e.x, e.y, R0 * 0.09 * grow, 0, TWO_PI);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = rgba(COLORS.accent, 1);
     ctx.beginPath();
-    ctx.arc(e.x, e.y, R0 * 0.035, 0, TWO_PI);
+    ctx.arc(e.x, e.y, R0 * 0.035 * grow, 0, TWO_PI);
     ctx.fill();
     ctx.restore();
   });
 }
 
-// 껍질: 파형을 나선으로 만 선. 굴러간 거리만큼 돌아가고, 킥에 살짝 튐
+// 껍질 가장자리의 반지름 배율. k 0 = 동그라미, 1 = 네모
+function shellEdge(th, k) {
+  return lerp(1, 0.86 / Math.max(Math.abs(Math.cos(th)), Math.abs(Math.sin(th))), k);
+}
+
+// 껍질: 파형을 나선으로 만 선. 덩어리일 때는 뾰루지 안에서 작게, 달팽이가 되면 등 위에서 크게.
+// 굴러간 거리만큼 돌아가고, 킥에 살짝 튐. ⑧ 결과에 따라 네모·동그라미 (사용자 지시)
 function drawShell(ctx, shape) {
   const R0 = shape.R0;
-  const rs = R0 * 0.72;
-  const x = shape.cx + (shape.face >= 0 ? 1 : -1) * cur.shellX; // shape.cx는 보내기 중·⑦⑧ 기어간 거리까지 포함
-  if (prevShellX !== null) shellRot += (x - prevShellX) / rs;
+  const form = cur.form;
+  const rs = R0 * lerp(0.4, 0.72, form) * cur.shellOn;
+  const onBackX = shape.cx + cur.shellX; // shape.cx는 보내기 중·⑦⑧ 움직인 거리까지 포함
+  const onBackY = topYAt(shape, onBackX) - rs * 0.9 - pulse.kick * R0 * 0.1;
+  const x = lerp(shape.pimpleTip.x - Math.cos(shape.pimpleAngle) * rs * 1.1, onBackX, form);
+  const y = lerp(shape.pimpleTip.y - Math.sin(shape.pimpleAngle) * rs * 1.1, onBackY, form);
+  if (prevShellX !== null) shellRot += (x - prevShellX) / Math.max(rs, 1);
   prevShellX = x;
-  const bob = cur.shellLift > 0.02 ? Math.sin(millis() / 300) * R0 * 0.05 : 0;
-  const y = topYAt(shape, x) - rs * 0.9 - cur.shellLift * R0 * 1.0 + bob - pulse.kick * R0 * 0.1;
   shellAt = { x, y, r: rs };
 
   ctx.save();
-  ctx.globalAlpha *= cur.shellOn;
-  ctx.fillStyle = rgba(COLORS.bg, 1);
+  ctx.globalAlpha *= Math.min(1, cur.shellOn * 1.6);
+  ctx.fillStyle = rgba(COLORS.bg, form);
   ctx.beginPath();
-  ctx.arc(x, y, rs * 1.02, 0, TWO_PI);
+  for (let a = 0; a < TWO_PI; a += 0.1) {
+    const r = rs * 1.02 * shellEdge(a, cur.shellSquare);
+    ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
+  }
+  ctx.closePath();
   ctx.fill();
 
   const turns = 3 * TWO_PI;
   const spiral = [];
   for (let a = 0; a <= turns; a += 0.07) {
     const u = a / turns;
-    const rr = rs * (0.06 + 0.9 * u) + waveAt(u) * rs * 0.35 * u;
     const rot = shellRot + part2ShellSpin();
+    const rr = (rs * (0.06 + 0.9 * u) + waveAt(u) * rs * 0.35 * u) * shellEdge(a + rot, cur.shellSquare);
     spiral.push({ x: x + Math.cos(a + rot) * rr, y: y + Math.sin(a + rot) * rr });
   }
   helixStroke(ctx, spiral, false, twistCount(HELIX.shellTwists), rs * HELIX.sep * 0.8);
@@ -968,7 +903,7 @@ function drawVoiceSlider() {
   triangle(glyph - 4, b.y, glyph + 4, b.y - 7, glyph + 4, b.y + 7);
 }
 /**
- * 조작 안내: 화살표와 아래쪽 안내 문구. Part 1은 누를 곳 위아래 화살표, Part 2는 껍질 옆 좌우 화살표와 바닥의 답 자리,
+ * 조작 안내: 화살표와 아래쪽 안내 문구. Part 1은 누를 곳 위아래 화살표, Part 2는 ⑥의 좌우 화살표와 ⑦⑧ 바닥의 답 자리,
  * ④는 등 위 세 자리 표시
  */
 function drawGuides(L) {
@@ -1025,9 +960,8 @@ function drawGuides(L) {
         label(t(`${key}.${id}`), x, cur.groundY + 14, { size: 13, weight: on ? 700 : 400, c: on ? COLORS.ink : COLORS.mute, a: p2.phase === 'answer' ? 255 : 110, align: CENTER, valign: TOP });
       });
     }
-    // 좌우 화살표: ⑦⑧ 아직 덜 움직였을 때, ⑥ 아직 덜 돌렸을 때 달팽이 양옆
-    const arrows = (sideStage && p2.phase === 'answer' && p2.moved < PART2_MOVE_THRESHOLD) ||
-      (stage === 'PART2_CENTER' && p2.phase === 'adjusting' && !canConfirmPart2());
+    // 좌우 화살표: ⑥ 아직 덜 돌렸을 때 덩어리 양옆 (⑦⑧은 없앰, 사용자 지시)
+    const arrows = stage === 'PART2_CENTER' && p2.phase === 'adjusting' && !canConfirmPart2();
     if (arrows) {
       const sx = cur.cx;
       const sy = cur.groundY - R0 * 1.2;

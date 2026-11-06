@@ -37,6 +37,7 @@ function loadVoice() {
   const ctx = getAudioContext();
   LANGS.forEach(async (lang) => {
     for (const id of Object.keys(VOICE_COPY)) {
+      if (VOICE_PENDING[lang].includes(id)) continue; // 문구가 바뀐 줄의 옛 녹음은 틀지 않음
       for (let k = 0; k < VOICE_LOAD_TRIES && !voiceClips[lang][id]; k++) {
         try {
           const res = await fetch(`${VOICE_FILES[lang]}${id}.mp3`);

@@ -1,10 +1,10 @@
 /**
  * 청각 다변기 (Sound Variator) - Part 2 검사 (ref/part2 (1).html 을 옮김)
  *
- * 검사 설계·소리·횟수·채점은 ref 그대로이고, 답하는 방식만 이 앱의 손짓(톡 · 쓸기 · 껍질 굴리기 · 달팽이 꾹)으로 바꿨습니다.
+ * 검사 설계·소리·횟수·채점은 ref 그대로이고, 답하는 방식만 이 앱의 손짓(톡 · 쓸기 · 껍질 굴리기 · 덩어리 꾹)으로 바꿨습니다.
  * ⑤ 고역 예민도 : 8→16 kHz로 높아지며 작아지는 "삐". 안 들리게 되는 순간 화면 아무 데나 톡 → maxFreqHz, sensitivity
- *               저절로 반복하지 않음: 듣고 나면 더듬이 톡 = 한 번 더(평균, 모두 3번까지), 달팽이 꾹 = 다음 (사용자 지시 11/03)
- * ⑥ 중앙       : 머리 둘레의 비트(HRIR 68번 귀). 좌우로 쓸면 소리가 머리 둘레를 돎. 가운데면 달팽이 꾹 (2번) → centerDeg, centerImage
+ *               저절로 반복하지 않음: 듣고 나면 덩어리 톡 = 한 번 더(평균, 모두 3번까지), 덩어리 꾹 = 다음 (사용자 지시 11/03)
+ * ⑥ 중앙       : 머리 둘레의 비트(HRIR 68번 귀). 좌우로 쓸면 소리가 머리 둘레를 돎. 가운데면 덩어리 꾹 (2번) → centerDeg, centerImage
  * ⑦ 우세 귀     : 옥타브 착청(Deutsch 1974). 높은 음이 들린 쪽으로 달팽이를 기어가게 하고 손을 떼면 바로 답 (3번) → dominantEar
  * ⑧ 바탕음·배음 : 바탕음 없는 복합음 두 개. 올라감 = 오른쪽, 내려감 = 왼쪽으로 달팽이를 보내고 손을 떼면 바로 답 (예시 + 6번) → pitchMode
  *   ⑦⑧은 껍질이 아니라 달팽이가 직접 몸을 돌려 기어감 (사용자 지시 11/03). roll = 달팽이 자리
@@ -167,8 +167,8 @@ const SENS = {
 const sensFreqAt = (u) => SENS.f0 * Math.pow(SENS.f1 / SENS.f0, u);
 const sensLevelAt = (u) => SENS.l0 + (SENS.l1 - SENS.l0) * u;
 
-// 한 번 듣고 고르기 (사용자 지시 11/03): 삐 소리는 저절로 다시 나오지 않음. 듣고 나면 더듬이 톡 = 한 번 더 듣기(평균에 들어감),
-// 달팽이 꾹 = 다음. 너무 일찍 눌렀으면 꾹이 안 되고 다시 들어야 함. 모두 합쳐 SENS.maxListens번까지
+// 한 번 듣고 고르기 (사용자 지시 11/03): 삐 소리는 저절로 다시 나오지 않음. 듣고 나면 덩어리 톡 = 한 번 더 듣기(평균에 들어감),
+// 덩어리 꾹 = 다음. 너무 일찍 눌렀으면 꾹이 안 되고 다시 들어야 함. 모두 합쳐 SENS.maxListens번까지
 function sensLogic() {
   const res = [];
   let n = 0;
@@ -543,7 +543,7 @@ function f0Buffer(tr) {
 /* =====================================================================
  * 단계 진행
  * phase: 'lead'(안내) → ⑦⑧ 'example'(듣기만 하는 예시) · 'lead' → 시행마다
- *   ⑤ 'pressing'(소리 나는 동안 톡) → 'choice'(더듬이 톡 또는 꾹)  ⑥ 'adjusting'(쓸어서 돌리고 꾹)  ⑦⑧ 'playing'(답 잠김) → 'answer'(끌고 손 떼기)
+ *   ⑤ 'pressing'(소리 나는 동안 톡) → 'choice'(덩어리 톡 또는 꾹)  ⑥ 'adjusting'(쓸어서 돌리고 꾹)  ⑦⑧ 'playing'(답 잠김) → 'answer'(끌고 손 떼기)
  *   → 'wait'(다음 시행까지) → … → 다음 단계
  * ===================================================================== */
 
@@ -690,7 +690,7 @@ function part2AfterAnswer(key, value) {
   p2.phase = 'wait';
   const note = p2.logic.answer(p2.trial, key, value);
   p2.note = note;
-  // ⑤는 저절로 다음으로 가지 않고 고르기를 기다림 (더듬이 톡 = 한 번 더, 달팽이 꾹 = 다음)
+  // ⑤는 저절로 다음으로 가지 않고 고르기를 기다림 (덩어리 톡 = 한 번 더, 덩어리 꾹 = 다음)
   if (window.GlobalState.currentStage === 'PART2_SENSITIVITY') {
     p2.phase = 'choice';
     if (note) sayGuide(['5-7', '5-8']);
@@ -844,7 +844,7 @@ function canConfirmPart2() {
 }
 
 /**
- * 답: ⑥은 달팽이 꾹, ⑦⑧은 껍질을 굴리고 손을 뗄 때 (releaseRoll)
+ * 답: ⑥은 덩어리 꾹, ⑦⑧은 껍질을 굴리고 손을 뗄 때 (releaseRoll)
  */
 function confirmPart2() {
   if (!canConfirmPart2()) return;
@@ -867,7 +867,7 @@ function confirmPart2() {
   part2AfterAnswer(key, millis() - p2.answerAt);
 }
 
-// 더듬이 톡 = 한 번 더 듣기 (⑦⑧ 시행마다 한 번, ⑤ 다 들은 뒤 모두 합쳐 SENS.maxListens번까지)
+// 덩어리 톡 = 한 번 더 듣기 (⑦⑧ 시행마다 한 번, ⑤ 다 들은 뒤 모두 합쳐 SENS.maxListens번까지)
 function canReplayPart2() {
   const p2 = part2State();
   const stage = window.GlobalState.currentStage;
@@ -943,19 +943,4 @@ function part2CenterLiveDeg() {
   if (part2Ctrl && part2Ctrl.alive()) return lateralDeg(part2Ctrl.state().angle);
   const p2 = part2State();
   return p2.logic && p2.logic.soFar ? p2.logic.soFar() : null;
-}
-
-// ⑧ 점액 모양: 지금 고르려는 쪽이 바탕음(F, 네모)인지 배음(H, 동그라미)인지와 지금까지 답한 수
-// 달팽이가 가 있는 쪽(roll)으로 정함. 시행마다 순서(AB/BA)에 따라 같은 쪽도 뜻이 바뀜
-function part2PitchSlime() {
-  const gs = window.GlobalState;
-  const p2 = part2State();
-  if (gs.currentStage !== 'PART2_PITCH' || !p2.logic) return null;
-  const tally = p2.logic.soFar();
-  let live = null;
-  if ((p2.phase === 'answer' || p2.phase === 'wait') && p2.trial && Math.abs(p2.roll) > 0.05) {
-    const key = p2.roll > 0 ? 'up' : 'down';
-    live = key === (p2.trial.order === 'AB' ? 'down' : 'up') ? 'F' : 'H';
-  }
-  return { live, F: tally.F, S: tally.S };
 }
