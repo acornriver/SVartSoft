@@ -61,6 +61,7 @@
         if (list.length > 5) log('initial', `  ... (${list.length - 5}개 더)`);
       },
       onArrive(ear, { animate }) {
+        (window.__arrivals ||= []).push({ earId: ear.earId, createdAt: ear.createdAt, at: Date.now(), animate });
         log('arrive', `🐌 도착 (animate:${animate}) ${ear.earId} | ${ear.code}${ear._mock ? ' [mock]' : ''}`);
       },
       onRemove(earId) {

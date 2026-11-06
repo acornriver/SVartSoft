@@ -6,7 +6,7 @@ import { spawn } from 'node:child_process';
 import { writeFileSync, mkdirSync } from 'node:fs';
 
 const OUT = process.argv[2];
-const URL = 'http://localhost:8765/index.html';
+const URL = 'http://localhost:8765/index.html' + (process.env.FLOW_QUERY || '');
 const LANG = process.argv[3] || 'ko';
 const W = 744, H = 1133;
 mkdirSync(OUT, { recursive: true });

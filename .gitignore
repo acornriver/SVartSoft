@@ -5,3 +5,7 @@ ref/
 # 테스트 Node 모듈 (앱과 분리)
 tests/cloud/node_modules/
 tests/cloud/package-lock.json
+
+# Firebase 에뮬레이터 로그
+firebase-debug.log
+firestore-debug.log

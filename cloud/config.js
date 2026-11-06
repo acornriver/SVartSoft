@@ -65,3 +65,11 @@ window.CloudConfig = {
   // 오래된 도착 기준 (createdAt이 이보다 오래되면 animate: false)
   FEED_OLD_THRESHOLD_MS: 60 * 1000
 };
+
+// ?emulator=1은 로컬 에뮬레이터에만 붙으므로 실제 프로젝트 설정 대신 테스트 프로젝트를 씀
+if (location.search.includes('emulator=1')) {
+  window.CloudConfig.FIREBASE_CONFIG = {
+    apiKey: 'test', authDomain: 'test', projectId: 'svart-test',
+    storageBucket: '', messagingSenderId: '', appId: 'test'
+  };
+}

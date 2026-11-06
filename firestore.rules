@@ -5,7 +5,9 @@ service cloud.firestore {
     match /ears/{earId} {
 
       // ===== 읽기: hidden == false인 문서만 =====
-      allow read: if resource.data.hidden == false;
+      // get은 없는 문서도 허용: send.js가 거부 원인(이미 있음/규칙 위반)을 구분해야 함
+      allow get: if resource == null || resource.data.hidden == false;
+      allow list: if resource.data.hidden == false;
 
       // ===== 쓰기: create만 허용 =====
       allow update, delete: if false;
@@ -70,15 +72,15 @@ service cloud.firestore {
         request.resource.data.app is string &&
 
         // profile 타입과 범위
-        request.resource.data.profile.volDb is float || request.resource.data.profile.volDb is int &&
+        (request.resource.data.profile.volDb is float || request.resource.data.profile.volDb is int) &&
         request.resource.data.profile.volDb >= -60 &&
         request.resource.data.profile.volDb <= 0 &&
 
-        request.resource.data.profile.lowDb is float || request.resource.data.profile.lowDb is int &&
+        (request.resource.data.profile.lowDb is float || request.resource.data.profile.lowDb is int) &&
         request.resource.data.profile.lowDb >= -10 &&
         request.resource.data.profile.lowDb <= 10 &&
 
-        request.resource.data.profile.highDb is float || request.resource.data.profile.highDb is int &&
+        (request.resource.data.profile.highDb is float || request.resource.data.profile.highDb is int) &&
         request.resource.data.profile.highDb >= -10 &&
         request.resource.data.profile.highDb <= 10 &&
 

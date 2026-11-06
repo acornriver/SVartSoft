@@ -23,7 +23,7 @@ const RULES = readFileSync(resolve(__dir, '../../firestore.rules'), 'utf8');
 const PROJECT_ID = 'svart-test-rules';
 
 // 유효한 문서 베이스
-const VALID_EAR_ID = 'ABCDE12345';
+const VALID_EAR_ID = 'ABCDE23456';
 
 function validDoc(overrides = {}, profileOverrides = {}) {
   return {
@@ -169,6 +169,10 @@ async function run() {
     }));
   });
 
+  await test('허용: 없는 문서 get', async () => {
+    await assertSucceeds(getDoc(doc(db, 'ears', VALID_EAR_ID)));
+  });
+
   // ===== 거부 케이스 =====
 
   await test('거부: earId 형식 불일치 (소문자 포함)', async () => {
@@ -197,7 +201,7 @@ async function run() {
 
   await test('거부: name 너무 긺 (13자)', async () => {
     await assertFails(setDoc(doc(db, 'ears', VALID_EAR_ID), {
-      ...validDoc({ name: '가나다라마바사아자차카' + '타' }), createdAt: serverTimestamp()
+      ...validDoc({ name: '가나다라마바사아자차카타파' }), createdAt: serverTimestamp()
     }));
   });
 
@@ -255,6 +259,13 @@ async function run() {
       });
     });
     await assertFails(deleteDoc(doc(db, 'ears', VALID_EAR_ID)));
+  });
+
+  await test('거부: hidden 문서 get', async () => {
+    await testEnv.withSecurityRulesDisabled(async ctx => {
+      await setDoc(doc(ctx.firestore(), 'ears', VALID_EAR_ID), { ...validDoc(), hidden: true });
+    });
+    await assertFails(getDoc(doc(db, 'ears', VALID_EAR_ID)));
   });
 
   await teardown();
