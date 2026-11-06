@@ -36,9 +36,21 @@ const sandbox = {
   document: {}
 };
 vm.createContext(sandbox);
-vm.runInContext(readFileSync(new URL('../../cloud/send.js', import.meta.url), 'utf8'), sandbox);
+// Firebase를 받아 오는 import()만 가짜로 바꾸고 나머지는 send.js 그대로 실행
+const fb = { setDoc: null, getDoc: null, setDocCalls: 0 };
+sandbox.__fakeFirestore = async () => ({
+  doc: () => ({}),
+  serverTimestamp: () => 'SERVER_TIME',
+  setDoc: (...a) => { fb.setDocCalls++; return fb.setDoc(...a); },
+  getDoc: (...a) => fb.getDoc(...a)
+});
+sandbox.window._initFirebase = async () => ({ db: {} });
+const sendSource = readFileSync(new URL('../../cloud/send.js', import.meta.url), 'utf8');
+const importPattern = /await import\(`[^`]*firebase-firestore\.js`\)/g;
+if (sendSource.match(importPattern)?.length !== 2) throw new Error('send.js의 import 자리가 바뀜: 이 테스트를 고칠 것');
+vm.runInContext(sendSource.replace(importPattern, 'await __fakeFirestore()'), sandbox);
 const { _clamp: clamp, _clamp1: clamp1, _volDb: volDb, _nullableNum: nullableNum, _makeId: makeId, _buildDoc: buildDoc,
-  _enqueue: enqueue, _loadQueue: loadQueue, _scheduleRetry: scheduleRetry } = sandbox;
+  _enqueue: enqueue, _loadQueue: loadQueue, _scheduleRetry: scheduleRetry, _uploadOne: uploadOne } = sandbox;
 
 test('volDb: masterVolume=0 → -60', () => {
   assert(volDb(0) === -60, `got ${volDb(0)}`);
@@ -133,6 +145,44 @@ test('earId: 1000개 생성 중 중복 없음', () => {
   const ids = new Set();
   for (let i = 0; i < 1000; i++) ids.add(makeId());
   assert(ids.size === 1000, `중복 발생: 생성 1000, 고유 ${ids.size}`);
+});
+
+// ===== permission-denied 처리 (실제 send.js의 업로드 경로) =====
+async function testAsync(name, fn) {
+  try { store.clear(); fb.setDocCalls = 0; await fn(); console.log('✅', name); pass++; }
+  catch (e) { console.error('❌', name, e.message); fail++; }
+}
+const denied = async () => { throw Object.assign(new Error('denied'), { code: 'permission-denied' }); };
+const ID = 'ABCDE23456';
+const queued = () => { enqueue(ID, { v: 1, earId: ID }); return loadQueue()[0]; };
+const rejectedCount = () => JSON.parse(store.get('svart.outbox.rejected') || '[]').length;
+
+await testAsync('App Check 실패: setDoc·getDoc 둘 다 실패하면 대기열에 남고 rejected로 안 감', async () => {
+  fb.setDoc = denied; fb.getDoc = denied;
+  await uploadOne(queued());
+  const q = loadQueue();
+  assert(q.length === 1 && q[0].attempts === 1 && q[0].nextAt > Date.now(), JSON.stringify(q));
+  assert(rejectedCount() === 0, 'rejected로 감');
+});
+await testAsync('App Check 복구: 다음 시도에 한 번만 올라가고 대기열에서 지워짐', async () => {
+  fb.setDoc = denied; fb.getDoc = denied;
+  await uploadOne(queued());
+  fb.setDocCalls = 0;
+  fb.getDoc = async () => ({ exists: () => false });
+  fb.setDoc = async () => {};
+  await uploadOne(loadQueue()[0]);
+  assert(fb.setDocCalls === 1, `setDoc ${fb.setDocCalls}번`);
+  assert(loadQueue().length === 0 && rejectedCount() === 0, '대기열이나 rejected에 남음');
+});
+await testAsync('이미 올라간 문서: setDoc 거부 + 문서 있음이면 대기열에서만 지움', async () => {
+  fb.setDoc = denied; fb.getDoc = async () => ({ exists: () => true });
+  await uploadOne(queued());
+  assert(loadQueue().length === 0 && rejectedCount() === 0, 'rejected로 가면 안 됨');
+});
+await testAsync('진짜 규칙 거부: setDoc 거부 + 문서 없음이면 rejected로', async () => {
+  fb.setDoc = denied; fb.getDoc = async () => ({ exists: () => false });
+  await uploadOne(queued());
+  assert(loadQueue().length === 0 && rejectedCount() === 1, 'rejected로 안 감');
 });
 
 console.log(`\n단위 테스트: ${pass}개 통과, ${fail}개 실패`);

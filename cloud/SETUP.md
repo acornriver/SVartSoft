@@ -154,7 +154,8 @@ JSON.parse(localStorage.getItem('svart.outbox.rejected') || '[]')
 
 ```bash
 # Firebase 에뮬레이터 시작 (firestore만)
-firebase emulators:start --only firestore
+# Java가 필요함: brew install openjdk@21 (시스템에 안 잡히므로 PATH를 앞에 붙임)
+PATH=/opt/homebrew/opt/openjdk@21/bin:$PATH firebase emulators:start --only firestore --project svart-test
 
 # 앱 서버
 python3 -m http.server 8765
@@ -164,6 +165,10 @@ http://localhost:8765/?emulator=1
 
 # 규칙 테스트 실행
 cd tests/cloud && npm install && node rules.test.mjs
+
+# 전송과 피드 테스트 (레포 루트에서, 출력 폴더는 절대경로)
+node tests/e2e/cloud-flow.mjs <출력폴더>
+node tests/e2e/feed.mjs <출력폴더>
 ```
 
 ---
@@ -174,6 +179,23 @@ cd tests/cloud && npm install && node rules.test.mjs
 2. `?debug=1` URL로 아이패드 접속 → 화면 왼쪽 아래 전송 상태 확인
 3. 다음 날 Firebase 콘솔 → Firestore → `ears` 컬렉션에 문서가 쌓였는지 확인
 4. App Check 지표 확인 후 강제 적용
+
+---
+
+## 14. TV 화면 (청감 타워, 별도 레포)
+
+TV 화면은 이 레포가 아니라 별도 레포(청감 타워)에서 띄운다. 타워 레포는 이 레포의 `cloud/config.js`, `cloud/firebase.js`, `cloud/feed.js`를 복사해 간다. 고칠 때는 이 레포를 먼저 고치고 타워 레포로 복사한다.
+
+타워를 `acornriver.github.io`가 아닌 다른 도메인에 올리면 reCAPTCHA 키의 허용 도메인에 그 도메인을 추가해야 한다. 안 하면 App Check 강제 적용 뒤 TV가 빈다.
+
+---
+
+## 15. App Check 강제 적용 전 확인 목록
+
+- [ ] `node tests/cloud/unit.test.mjs` 통과 (App Check 실패 시 대기열 유지 포함)
+- [ ] 콘솔 App Check 지표에서 확인된 요청 비율 확인
+- [ ] 아이패드와 TV 실기기로 하룻밤 시험 (13장)
+- [ ] 타워 도메인이 reCAPTCHA 키에 등록됨 (14장)
 
 ---
 

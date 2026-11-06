@@ -22,6 +22,7 @@ let _reconnectCount = 0;
 let _countTimer = null;
 let _lastCount = 0;
 let _reconnectTimer = null;
+let _catchingUp = false;       // 끊겼다 복구되는 중: 다음 서버 스냅샷은 밀린 것을 연출 없이 처리
 
 /**
  * 피드 시작
@@ -61,6 +62,7 @@ async function _startReal() {
 
 async function _attachListener(db) {
   if (_unsubscribe) { _unsubscribe(); _unsubscribe = null; }
+  if (_initialDone) _catchingUp = true;
 
   const SDK = window.FIREBASE_SDK_VERSION || '11.0.2';
   const { collection, query, where, orderBy, limit, onSnapshot } =
@@ -112,6 +114,8 @@ function _handleSnapshot(snap) {
 
   if (!_initialDone) return; // 아직 로컬 캐시 단계
 
+  if (fromCache) _catchingUp = true;
+
   // 이후 증분 처리
   for (const change of snap.docChanges()) {
     const data = change.doc.data();
@@ -125,7 +129,7 @@ function _handleSnapshot(snap) {
       const age = data.createdAt?.toMillis
         ? now - data.createdAt.toMillis()
         : Infinity;
-      const animate = age < (cfg.FEED_OLD_THRESHOLD_MS || 60000);
+      const animate = !_catchingUp && age < (cfg.FEED_OLD_THRESHOLD_MS || 60000);
 
       if (_feedCallbacks?.onArrive) _feedCallbacks.onArrive(ear, { animate });
 
@@ -135,12 +139,22 @@ function _handleSnapshot(snap) {
 
       _updateFeedCache(ear);
     } else if (change.type === 'removed') {
-      const earId = data.earId;
-      _knownIds.delete(earId);
-      if (_feedCallbacks?.onRemove) _feedCallbacks.onRemove(earId);
-      _removeFeedCache(earId);
+      _emitRemove(data.earId);
     }
   }
+
+  if (_catchingUp && !fromCache) {
+    // 새로 건 리스너는 끊긴 동안 사라진 문서를 removed로 알려 주지 않을 수 있음
+    const live = new Set(snap.docs.map(d => d.data().earId));
+    [..._knownIds].filter(id => !live.has(id)).forEach(_emitRemove);
+    _catchingUp = false;
+  }
+}
+
+function _emitRemove(earId) {
+  _knownIds.delete(earId);
+  if (_feedCallbacks?.onRemove) _feedCallbacks.onRemove(earId);
+  _removeFeedCache(earId);
 }
 
 function _toEar(docSnap) {

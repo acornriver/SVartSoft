@@ -137,7 +137,7 @@
 | `cloud/SETUP.md` | Firebase 프로젝트 만들기·배포·App Check·운영 가이드 |
 | `firestore.rules` | 보안 규칙 (create만, hasOnly 검사, 범위 검사) |
 | `firestore.indexes.json` | `hidden==false + createdAt desc` 복합 인덱스 |
-| `tests/e2e/` | 헤드리스 크롬 테스트(0-5) + `cloud-flow.mjs`(에뮬레이터 필요) |
+| `tests/e2e/` | 헤드리스 크롬 테스트(0-5) + `cloud-flow.mjs`, `cloud-arrive.mjs`, `feed.mjs`(에뮬레이터 필요) |
 | `tests/register/`, `tests/earcode/` | 음역 음량 보정 도구, 청감 코드 글자별 듣기 |
 | `tests/cloud/` | 규칙 테스트(`rules.test.mjs`, 에뮬레이터 필요), 단위 테스트(`unit.test.mjs`) |
 | `tests/feed/index.html` | 피드 확인용 최소 페이지(`?mock=1` 또는 `?emulator=1`) |
@@ -195,7 +195,7 @@
 - 산책용 녹음의 `spectrum` 라벨은 대략값입니다. 측정해서 맞추면 음량 보정이 더 정확해집니다.
 - 녹음 루프 이음새가 툭 끊길 수 있습니다. 차 영상에 번호판이 흐리게 보입니다. `media/`에 안 쓰는 파일이 있습니다.
 - **커밋 상태**: 두 번째 버전 작업까지 `34f0c11`로 `origin/main`에 푸시했습니다. `ref/`와 `media/img/`는 커밋하지 않습니다.
-- **청감 클라우드 백엔드(A)**: 커밋됨. Firebase 프로젝트 미등록(config.js에 projectId 비어 있음, 비어 있으면 전송 안 함). 규칙은 아직 배포 전. 에뮬레이터 실행: `PATH=/opt/homebrew/opt/openjdk@21/bin:$PATH firebase emulators:start --only firestore --project svart-test`. 테스트는 `tests/cloud/rules.test.mjs`, `tests/e2e/cloud-flow.mjs`, `tests/e2e/cloud-arrive.mjs`. App Check 실패 시 대기열 유지 경로, 실제 Firebase 연결, CDN 첫 로드 시간은 미확인.
+- **청감 클라우드 백엔드(A)**: 커밋됨. Firebase 프로젝트 미등록(config.js에 projectId 비어 있음, 비어 있으면 전송 안 함). 규칙은 아직 배포 전. 에뮬레이터 실행: `PATH=/opt/homebrew/opt/openjdk@21/bin:$PATH firebase emulators:start --only firestore --project svart-test`. 테스트는 `tests/cloud/rules.test.mjs`, `tests/e2e/cloud-flow.mjs`, `tests/e2e/cloud-arrive.mjs`. 실제 Firebase 연결, CDN 첫 로드 시간은 미확인.
 - 마감은 **11/20**입니다.
 - **Part 2 시행 횟수 축소**(11/02 사용자 "뒤쪽 검사가 너무 많다" → 추천안 선택): 25번쯤 → 12번쯤. ⑤ 2번(일찍 누르면 다시) 그대로, ⑥ 3→2, ⑦ 6→3, ⑧ 연습 2+12 → 1+6(11/05부터 연습은 듣기만 하는 예시). ⑧에 남긴 쌍(2·6·7번, 프로필 a·b·c 하나씩)은 Claude가 고름. 시행이 적어 결과가 덜 안정적임(⑦은 3:0 아니면 2:1).
 - **Part 2 음악화**(11/02 사용자 "part2 검사도 적극적으로 음악 소리 바꿔도 됨" → 추천안 "측정은 살리고 음악처럼"): Part 2 박자는 120 BPM(`P2_GROOVE`). ⑦⑧ 음 길이가 원래 120 BPM 8분·4분음표와 맞아 측정 소리 길이는 그대로입니다.
@@ -330,6 +330,12 @@
   - 고친 것: 터치 취소(touchcancel) 처리, 1-4 안내가 손 떨림에 1-2·1-3을 끊던 문제(화면 높이 3% 이상 내려 쓸고 앞 안내가 끝난 뒤 재생, `VOICE_DOWN_RATIO`), 자막만 나오는 줄의 비트 줄임, ⑤ 3번 다 일찍 눌렀을 때 안내, 영어 결과 버튼 넘침(길면 11px 두 줄), 긴 이름 잘림(제목 전체 축소), 녹음 로드 실패 시 `Loading...` 멈춤.
   - 정리: README를 지금 앱에 맞춤, 낡은 주석과 안 쓰는 코드 삭제, 단위 테스트가 복사본 대신 진짜 `send.js`를 검사하게 바꿈.
   - 작업 중 다른 세션과 CDP 포트 9333이 겹쳐 서로의 Chrome이 꺼졌습니다. 여러 세션을 함께 돌릴 때는 포트를 나눠야 합니다.
+
+- **2026-11-06 — 백엔드 마무리 (B-1)** (Claude)
+  - TV 화면(청감 타워)은 별도 레포에서 만듭니다(사용자 결정). 이 레포에 `tower/`를 만들지 않습니다. 타워 레포는 `cloud/config.js`, `cloud/firebase.js`, `cloud/feed.js`를 복사해 갑니다. **고칠 때는 이 레포를 먼저 고치고 타워 레포로 복사합니다.**
+  - 피드 테스트 `tests/e2e/feed.mjs`를 추가하고 `cloud/feed.js`를 고쳤습니다. 끊겼다 복구될 때 60초 안의 문서가 `animate: true`로 와서 한꺼번에 날아오던 문제입니다. 끊긴 뒤 첫 서버 스냅샷은 연출 없이 처리하고 그 사이 사라진 문서를 `onRemove`로 보냅니다(`_catchingUp`).
+  - `tests/cloud/unit.test.mjs`에 App Check 실패 시 대기열 유지 테스트를 넣었습니다(실제 `send.js`, Firebase만 가짜).
+  - 남은 것: 숨김 뒤 `onCount`는 다음 갱신(5분)까지 줄지 않습니다.
 
 - **2026-11-02 — 청감 클라우드 백엔드 회의** (사용자 결정)
   - 백엔드는 Firebase(Firestore, Blaze 플랜과 예산 알림)입니다. 앱은 지금처럼 GitHub Pages에 두고, 음원은 Firestore 밖(GitHub Pages나 Cloudflare R2)에 둡니다.

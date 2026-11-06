@@ -53,6 +53,7 @@
 
     startFeed({
       onInitial(list) {
+        window.__initials = (window.__initials || 0) + 1;
         statusEl.textContent = `초기 목록 ${list.length}개 로드됨`;
         log('initial', `초기 ${list.length}개:`);
         list.slice(0, 5).forEach(e => {
@@ -65,6 +66,7 @@
         log('arrive', `🐌 도착 (animate:${animate}) ${ear.earId} | ${ear.code}${ear._mock ? ' [mock]' : ''}`);
       },
       onRemove(earId) {
+        (window.__removed ||= []).push(earId);
         log('remove', `🗑 제거 ${earId}`);
       },
       onCount(total) {
