@@ -351,7 +351,7 @@ function calculateUILayout() {
   let groundK = 0.72;
   if (stage === 'RESULT') { stageTop = m + 185; stageBottom = btn.y - 230; groundK = 0.72; }
   const stageH = max(160, stageBottom - stageTop);
-  let R0 = min(width * (stage === 'RESULT' ? 0.125 : 0.12), stageH * 0.2);
+  let R0 = min(width * (stage === 'RESULT' ? 0.155 : 0.15), stageH * 0.24); // 11/07 아이패드 미니에서 작아 보여 약 1.25배로 키움
   let groundY = stageTop + stageH * groundK;
   if (isIntroStage(stage)) { R0 = min(width, height) * 0.075; groundY = height * 0.86; }
 
@@ -439,10 +439,7 @@ function getTouchTargets() {
 function canReplay() {
   const stage = window.GlobalState.currentStage;
   if (inputLocked()) return false;
-  if (stage === 'PART1_REGISTER') {
-    const reg = window.GlobalState.part1.register;
-    return !reg.isAutoPlaying && reg.playingCard < 0; // 고른 멜로디가 울리는 동안은 안 됨 (끊기면 4-5 안내가 안 나옴)
-  }
+  if (stage === 'PART1_REGISTER') return false; // 11/07 ④는 A/B/C를 눌러 다시 들으므로 덩어리 톡 다시 듣기 없음
   return canReplayPart2();
 }
 
@@ -1056,7 +1053,6 @@ function drawGuides(L) {
     if (reg.isAutoPlaying) hints.push(t('hint.listening'));
     else {
       hints.push(voiceText(reg.selectedCard >= 0 ? '4-5' : '4-4'));
-      hints.push(voiceText('4-7'));
     }
   } else if (stage.startsWith('PART2_')) {
     const p2 = gs.part2;

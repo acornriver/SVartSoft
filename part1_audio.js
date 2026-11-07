@@ -630,7 +630,7 @@ async function introRegister() {
   lockInput();
   await say(REGISTER_INTRO_VOICE);
   if (token !== registerPlayToken) return;
-  if (await playAllRegisterCards()) sayGuide(['4-4', '4-7']);
+  if (await playAllRegisterCards()) sayGuide(['4-4']);
 }
 
 // 세 멜로디를 끝까지 들려줬으면 true
